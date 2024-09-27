@@ -22,7 +22,7 @@ class SampleSy(QuestionSelector):
                 continue
             answer_to_num_progs = {}
             for prog in program_space:
-                answer = str(sorted(list(self.interp.eval_standard(prog, q[semantics]))))
+                answer =  self.interp.represent_output(self.interp.eval_standard(prog, q[semantics]))
                 if answer not in answer_to_num_progs:
                     answer_to_num_progs[answer] = 1
                 else:
@@ -38,10 +38,10 @@ class SampleSy(QuestionSelector):
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         questions_and_outputs = []
         for prog in program_space[1:]:
-            for img, abs_img in input_qs.items():
-                if img in current_qs:
+            for inp_id, inp in input_qs.items():
+                if inp_id in current_qs:
                     continue 
-                if self.interp.eval_standard(prog, abs_img["standard"]) != self.interp.eval_standard(program_space[0], abs_img["standard"]):
+                if self.interp.eval_standard(prog, inp["standard"]) != self.interp.eval_standard(program_space[0], inp["standard"]):
                     return False
-                questions_and_outputs.append((abs_img, self.interp.eval_standard(program_space[0], abs_img["standard"])))
+                questions_and_outputs.append((inp, self.interp.eval_standard(program_space[0], inp["standard"])))
         return True  

@@ -18,7 +18,7 @@ class SelectRandom(QuestionSelector):
             semantics
             ):
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
-        # random.seed(123)
+        random.seed(123)
         i = random.choice(list(range(len(labelling_qs))))
         img, obj_id, key = labelling_qs.pop(i)
         abs_img = input_space[img]

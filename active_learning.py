@@ -1,10 +1,11 @@
 import time 
 import random
-from image_edit_dsl import *
-from image_edit_utils import *
-from constants import *
 from abc import ABC, abstractmethod
 
+from constants import *
+
+from image_edit_domain.image_edit_dsl import *
+from utils import *
 
 class ActiveLearning(ABC):
     def __init__(self, semantics, question_selection):
@@ -41,7 +42,7 @@ class ActiveLearning(ABC):
                 print(f"Starting Round {rounds}!")
                 round_start_time = time.perf_counter()
                 if len(program_space) == 0:
-                    print("Active learning failed. ")
+                    print("Active learning failed.")
                     return "FAIL", time_per_round, skipped_inputs
                 print(f"Num programs in program space: {len(program_space)}")
                 print("Checking distinguishability!")
@@ -50,15 +51,14 @@ class ActiveLearning(ABC):
                     print("All programs indistinguishable! Active learning finished!")
                     print("Synthesized prog: {}".format(program_space[0]))
                     return program_space, time_per_round, skipped_inputs
-                random.seed(123 + rounds)
+                random.seed(123)
                 samples = random.sample(program_space, min(NUM_SAMPLES, len(program_space)))
-                print("Starting question selector!")
                 new_input_question = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
                 # this will happen if the question is a labelling question
                 if new_input_question is None:
                     pass 
                 else: 
-                    print(f"New input question: {new_input_question}")
+                    print(f"Asking input question with id: {new_input_question}")
                     # get the ground truth answer to the question
                     new_answer = self.interp.eval_standard(self.gt_prog, self.input_space[new_input_question]["gt"]) 
                     self.add_example(new_input_question, new_answer, skipped_inputs)
@@ -67,9 +67,15 @@ class ActiveLearning(ABC):
                 time_per_round.append(time.perf_counter() - round_start_time)
                 print()
         except TimeOutException:
-            print("TIMEOUT")
             return "TIMEOUT", time_per_round, skipped_inputs
         
 
     def add_example(self, new_question, new_answer, skipped_inputs):
         self.examples.append((new_question, new_answer))
+
+
+class LabelQuestion:
+    def __init__(self, input_id, obj_id, attr_id):
+        self.input_id = input_id
+        self.obj_id = obj_id
+        self.attr_id = attr_id

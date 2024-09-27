@@ -1,4 +1,4 @@
-from image_edit_dsl import *
+from image_edit_domain.image_edit_dsl import *
 from typing import Dict
 
 

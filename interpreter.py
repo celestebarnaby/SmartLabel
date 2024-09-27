@@ -18,16 +18,6 @@ class Interpreter(ABC):
         pass
 
     @abstractmethod
-    def eval_consistent(
-        self,
-        expr, 
-        input_list,
-        gt_output=None,
-        constraints={}
-    ):
-        pass
-
-    @abstractmethod
     def eval_standard(
         self,
         expr,
@@ -40,11 +30,12 @@ class Interpreter(ABC):
     def no_children(self, rule):
         pass
 
-
     @abstractmethod 
-    def matches_constraints(inp, constraints):
+    def gt_matches_abs_output(self, gt_output, abs_value):
         pass
 
+    def matches_constraints(inp, constraints):
+        return True
 
     def eval_cce(
         self,
@@ -54,17 +45,21 @@ class Interpreter(ABC):
     ):
         inp_conf = inp["conf"]
         self.forward_ai(expr, inp_conf)
-        if not check_output_abs(gt_output, expr.abs_value):
+        if not self.gt_matches_abs_output(gt_output, expr.abs_value):
             return False
         constraints = {}
-        if not self.backward_ai(expr, inp_conf, gt_output, gt_output, constraints):
-            return False
-        abs_img_conf_list = inp["conf_list"]
-        output_concrete = self.eval_consistent(expr, abs_img_conf_list, gt_output=str(sorted(list(gt_output))), constraints=constraints)
-        if str(sorted(list(gt_output))) in output_concrete:
+        # if not self.backward_ai(expr, inp_conf, gt_output, gt_output, constraints):
+            # return False
+        inp_conf_list = inp["conf_list"]
+        output_concrete = self.eval_consistent(expr, inp_conf_list, gt_output=self.represent_output(gt_output), constraints=constraints)
+        if self.represent_output(gt_output) in output_concrete:
             return True
         return False
     
+
+    def represent_output(self, output):
+        return output
+
 
     def eval_consistent(
             self,
@@ -77,9 +72,9 @@ class Interpreter(ABC):
             if constraints and not self.matches_constraints(inp, constraints):
                 continue
             res = self.eval_standard(expr, inp)
-            res_str = str(sorted(list(res)))
-            res_set.add(res_str)
-            if gt_output == res_str:
+            res_rep = self.represent_output(res)
+            res_set.add(res_rep)
+            if gt_output == res_rep:
                 break
         return res_set
 
@@ -88,6 +83,25 @@ class Interpreter(ABC):
     def subprogs_not_equal(self, prog1, prog2, inp, semantics):
         pass 
 
+    @abstractmethod
+    def get_all_universes(self, inp):
+        pass
+
+    @abstractmethod 
+    def get_labelling_q_answers(self, inp, obj_id, key):
+        pass 
+
+    @abstractmethod
+    def set_labelling_q_answer(self, inp, obj_id, key, answer):
+        pass 
+
+    @abstractmethod
+    def reset_labelling_q(self, inp, obj_id, key, original_obj):
+        pass 
+
+    @abstractmethod 
+    def get_num_partial_conf_samples(self, num_universes):
+        pass
 
     def get_check(self, semantics):
         semantics_to_check = {
@@ -100,27 +114,25 @@ class Interpreter(ABC):
 
     def check_prog_cce_no_abs(self, prog, examples):
         for inp, output in examples:
-            output_str = str(sorted(list(output)))
-            prog_output = self.eval_consistent(prog, inp["conf_list"], gt_output=output_str)
-            if output_str not in prog_output:
+            output_rep = self.represent_output(output)
+            prog_output = self.eval_consistent(prog, inp["conf_list"], gt_output=output_rep)
+            if output_rep not in prog_output:
                 return False 
         return True 
 
 
     def check_prog_cce(self, prog, examples):
         for inp, output in examples:
-            result = self.eval_cce(prog.duplicate(), inp, output)
+            result = self.eval_cce(prog, inp, output)
             if not result:
                 return False 
         return True
 
 
     def check_prog_standard(self, prog, examples):
-        global eval_times
         for inp, output in examples:
-            prog_output = self.eval_standard(
-                prog, inp["standard"])
-            if prog_output != output:
+            result = self.eval_standard(prog.duplicate(), inp["standard"])
+            if result != output:
                 return False
         return True
 
@@ -132,7 +144,3 @@ class Interpreter(ABC):
             if self.eval_standard(prog, inp["gt"]) != self.eval_standard(gt_prog, inp["gt"]):
                 return False
         return True
-
-
-def check_output_abs(output, abs_value):
-    return abs_value[0].issubset(output) and output.issubset(abs_value[1])

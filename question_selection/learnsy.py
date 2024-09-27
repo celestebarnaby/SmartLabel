@@ -1,7 +1,7 @@
 import itertools
 from constants import *
 import random
-from image_edit_dsl import *
+from image_edit_domain.image_edit_dsl import *
 from question_selection.question_selection import QuestionSelector
 
 class LearnSy(QuestionSelector):
@@ -42,14 +42,14 @@ class LearnSy(QuestionSelector):
 
     def learn_models(self, input_space, semantics, synthesizer):
         print("Learning models...")
-        program_space = synthesizer.synthesize([])
+        program_space = synthesizer.synthesize_for_learnsy()
         grammar_rule_to_progs = {}
         for prog in program_space:
             if prog.get_grammar_rule() not in grammar_rule_to_progs:
                 grammar_rule_to_progs[prog.get_grammar_rule()] = []
             grammar_rule_to_progs[prog.get_grammar_rule()].append(prog)
         models = {}
-        for inp, abs_img in input_space.items():
+        for inp_id, inp in input_space.items():
             cross_per_rule_pair = {}
             self_per_rule = {}
             for rule, progs_per_rule in grammar_rule_to_progs.items():
@@ -58,25 +58,29 @@ class LearnSy(QuestionSelector):
                     continue 
                 n1 = 0
                 n2 = 0
+                random.seed(123)
                 samples1 = random.sample(progs_per_rule, min(NUM_LEARNSY_SAMPLES, len(progs_per_rule)))
                 samples2 = random.sample(progs_per_rule, min(NUM_LEARNSY_SAMPLES, len(progs_per_rule))) 
                 for prog1, prog2 in zip(samples1, samples2):
-                    if self.interp.subprogs_not_equal(prog1, prog2, abs_img, semantics):
+                    if self.interp.subprogs_not_equal(prog1, prog2, inp, semantics):
                         n1 += 1
-                        if self.interp.eval_standard(prog1, abs_img[semantics]) == self.interp.eval_standard(prog2, abs_img[semantics]):
+                        if self.interp.eval_standard(prog1, inp[semantics]) == self.interp.eval_standard(prog2, inp[semantics]):
                             n2 += 1 
                 self_per_rule[rule] = n2/n1 if n1 > 0 else W_DEFAULT
             for rule1, rule2 in list(itertools.combinations(list(grammar_rule_to_progs.keys()), 2)):
                 progs_per_rule1 = grammar_rule_to_progs[rule1]
                 progs_per_rule2 = grammar_rule_to_progs[rule2]
+                random.seed(123)
                 samples1 = random.choices(progs_per_rule1, k=NUM_LEARNSY_SAMPLES)
                 samples2 = random.choices(progs_per_rule2, k=NUM_LEARNSY_SAMPLES)
                 n = 0
                 for prog1, prog2 in zip(samples1, samples2):
-                    if self.interp.eval_standard(prog1, abs_img[semantics]) == self.interp.eval_standard(prog2, abs_img[semantics]):
+                    prog1_output = self.interp.eval_standard(prog1, inp[semantics])
+                    prog2_output = self.interp.eval_standard(prog2, inp[semantics])
+                    if type(prog1_output) == type(prog2_output) and prog1_output == prog2_output:
                         n += 1
                 cross_per_rule_pair[str(sorted([rule1, rule2]))] = n/NUM_LEARNSY_SAMPLES 
-            models[inp] = (self_per_rule, cross_per_rule_pair)
+            models[inp_id] = (self_per_rule, cross_per_rule_pair)
         print("Done learning!")
         self.models = models
     

@@ -1,3 +1,4 @@
+import random
 from question_selection.smart_label import SmartLabel
 
 class SmartLabelNoUB(SmartLabel):
@@ -29,7 +30,7 @@ class SmartLabelNoUB(SmartLabel):
 
         if optimal_answer_list[-1] == len(program_space):
             # Just arbitrarily pick some label question where there is a weird universe
-            options = sorted([i for i, (j, _, _) in enumerate(labelling_qs) if j == self.backup_question_index])
+            options = sorted([i for i, label_q in enumerate(labelling_qs) if label_q.input_id == self.backup_question_index])
             if len(options) == 0:
                 print(self.backup_question_index)
                 raise TypeError 
@@ -38,12 +39,18 @@ class SmartLabelNoUB(SmartLabel):
             optimal_answer_list = None
 
         if q_type == "label":
-            img, obj_id, key = labelling_qs.pop(q_index)
-            abs_img = input_space[img]
-            skip = self.ask_labelling_question(abs_img, key, obj_id, img)
+            label_q = labelling_qs.pop(q_index)
+            inp_id = label_q.input_id
+            obj_id = label_q.obj_id 
+            attr_id = label_q.attr_id
+
+            inp = input_space[inp_id]
+            skip = self.ask_labelling_question(inp, attr_id, obj_id, inp)
+            # Update conf_list 
+            inp["conf_list"] = self.interp.get_all_universes(inp["conf"])
             if skip is not None:
-                labelling_qs[:] = [(other_img, other_obj_id, other_key) for (other_img, other_obj_id, other_key) in labelling_qs if img != other_img or obj_id != other_obj_id]
-            if img not in current_qs:
-                return img 
+                labelling_qs[:] = [other_labelling_q for other_labelling_q in labelling_qs if inp_id != other_labelling_q.input_id or obj_id != other_labelling_q.obj_id]
+            if inp_id not in current_qs:
+                return inp_id 
             return None 
         return q_index

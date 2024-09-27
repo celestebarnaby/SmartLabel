@@ -30,13 +30,17 @@ class SmartLabel(QuestionSelector):
             if q_type == "input":
                 pruning_power = self.get_input_q_pruning_power(input_space[q_index], False, program_space, q_index)
             else:
-                img, obj_id, key = labelling_qs[q_index]
-                abs_img = input_space[img]
-                if img in current_qs and img not in skipped_inputs:
-                    output = str(sorted(list([output for asked_q, output in examples if asked_q == img][0])))
+                labelling_q = labelling_qs[q_index]
+                inp_id = labelling_q.input_id 
+                obj_id = labelling_q.obj_id
+                attr_id = labelling_q.attr_id
+
+                inp = input_space[inp_id]
+                if inp_id in current_qs and inp_id not in skipped_inputs:
+                    output = self.interp.represent_output([output for asked_q, output in examples if asked_q == inp_id][0])
                 else:
                     output = None
-                pruning_power = self.get_labelling_q_pruning_power(abs_img, obj_id, key, program_space, q_index, output, False)
+                pruning_power = self.get_labelling_q_pruning_power(inp, obj_id, attr_id, program_space, q_index, output, False)
             concrete_pruning_powers.append(pruning_power)
             if pruning_power.answer_list[-1] == len(program_space) and len(pruning_power_per_question) > 0:
                 continue 
@@ -55,23 +59,30 @@ class SmartLabel(QuestionSelector):
                 
         if optimal_answer_list[-1] == len(program_space):
             # Just arbitrarily pick some label question where there is a weird universe
-            options = sorted([i for i, (j, _, _) in enumerate(labelling_qs) if j == self.backup_question_index])
+            options = sorted([i for i, label_q in enumerate(labelling_qs) if label_q.input_id == self.backup_question_index])
             # TODO: does this ever happen ?
             if len(options) == 0:
-                print(self.backup_question_index)
+                print(f"Back up question index: {self.backup_question_index}")
+                print(f"Current examples: {examples}")
                 raise TypeError 
             optimal_q_type = "label"
             optimal_q = options[0]
             optimal_answer_list = None
 
         if optimal_q_type == "label":
-            img, obj_id, key = labelling_qs.pop(optimal_q)
-            abs_img = input_space[img]
-            skip = self.ask_labelling_question(abs_img, key, obj_id, img)
+            labelling_q = labelling_qs.pop(optimal_q)
+            inp_id = labelling_q.input_id 
+            obj_id = labelling_q.obj_id
+            attr_id = labelling_q.attr_id
+
+            inp = input_space[inp_id]
+            skip = self.interp.ask_labelling_question(inp, attr_id, obj_id, inp_id)
+            # Update conf_list 
+            inp["conf_list"] = self.interp.get_all_universes(inp["conf"])
             if skip is not None:
-                labelling_qs[:] = [(other_img, other_obj_id, other_key) for (other_img, other_obj_id, other_key) in labelling_qs if img != other_img or obj_id != other_obj_id]
-            if img not in current_qs:
-                return img
+                labelling_qs[:] = [other_labelling_q for other_labelling_q in labelling_qs if inp_id != other_labelling_q.input_id or obj_id != other_labelling_q.obj_id]
+            if inp_id not in current_qs:
+                return inp_id
             return None
         return optimal_q
     
@@ -93,69 +104,55 @@ class SmartLabel(QuestionSelector):
 
         answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
         return PruningPowerInfo(answer_nums, img, "input", partial_conf)
+    
 
-
-    # TODO: this should be domain agnostic
-    def get_labelling_q_pruning_power(self, abs_img, obj_id, key, progs, q_index, output, partial_conf):
+    def get_labelling_q_pruning_power(self, inp, obj_id, key, progs, q_index, output, partial_conf):
+        answers_to_labelling_q = self.interp.get_labelling_q_answers(inp, obj_id, key)
         answer_to_freq = {}
-        for val in [True, False]:
-            if key == "Flag":
-                temp_obj = abs_img["conf"][obj_id]
-                if val:
-                    temp_obj["Flag"] = True 
-                else:
-                    del abs_img["conf"][obj_id]
-            else:
-                abs_img["conf"][obj_id][key] = [val]
-            conf_list = self.get_all_universes(abs_img["conf"])
-            # put it back
-            if key == "Flag":
-                abs_img["conf"][obj_id] = temp_obj
-                temp_obj["Flag"] = False 
-            else:
-                abs_img["conf"][obj_id][key] = [True, False]
-
+        for label_q_answer in answers_to_labelling_q:
+            original_obj = self.interp.set_labelling_q_answer(inp["conf"], obj_id, key, label_q_answer)
+            universes = self.interp.get_all_universes(inp["conf"])
+            self.interp.reset_labelling_q(inp["conf"], obj_id, key, original_obj)
             if partial_conf:
-                num_samples = min(MAX_PARTIAL_SAMPLES, int(len(conf_list) * PARTIAL_AMT)) if int(len(conf_list) * PARTIAL_AMT) > 0 else min(3, len(conf_list))  
+                num_samples = self.interp.get_num_partial_conf_samples(len(universes))
                 random.seed(123)
-                conf_list = random.sample(conf_list, num_samples)
+                universes = random.sample(universes, num_samples)
             for prog in progs:
-                answers = self.interp.eval_consistent(prog, conf_list)
-                for answer in answers:
-                    if output is not None and output != answer:
+                partial_conf_answers = self.interp.eval_consistent(prog, universes)
+                for partial_conf_answer in partial_conf_answers:
+                    if output is not None and output != partial_conf_answer:
                         continue
-                    if (answer, val) not in answer_to_freq:
-                        answer_to_freq[(answer, val)] = 0
-                    answer_to_freq[(answer, val)] += 1
+                    if (partial_conf_answer, label_q_answer) not in answer_to_freq:
+                        answer_to_freq[(partial_conf_answer, label_q_answer)] = 0
+                    answer_to_freq[(partial_conf_answer, label_q_answer)] += 1
         answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
         return PruningPowerInfo(answer_nums, q_index, "label", partial_conf)
 
 
     def get_all_qs_pruning_power(self, progs, input_qs, labelling_qs, examples, skipped_inputs, partial_conf=False):
-        print(f"# INDIST INPS: {len(INDIST_INPS)}")
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         pruning_power_per_question = []
 
         # input questions
-        for img in input_qs:
-            if img in INDIST_INPS:
+        for inp in input_qs:
+            if inp in INDIST_INPS:
                 continue
-            if img in current_qs:
+            if inp in current_qs:
                 continue 
-            pruning_power = self.get_input_q_pruning_power(input_qs[img], partial_conf, progs, img)
+            pruning_power = self.get_input_q_pruning_power(input_qs[inp], partial_conf, progs, inp)
             pruning_power_per_question.append(pruning_power)
 
         # labelling questions
-        for q_index, (img, obj_id, key) in enumerate(labelling_qs):
-            if img in INDIST_INPS:
+        for q_index, label_q in enumerate(labelling_qs):
+            if label_q.input_id in INDIST_INPS:
                 continue
-            if img in skipped_inputs:
+            if label_q.input_id in skipped_inputs:
                 continue
-            abs_img = input_qs[img]
-            output = None if img not in current_qs else str(sorted(list([output for asked_q, output in examples if asked_q == img][0])))
-            pruning_power = self.get_labelling_q_pruning_power(abs_img, obj_id, key, progs, q_index, output, partial_conf)
+            inp = input_qs[label_q.input_id]
+            output = None if label_q.input_id not in current_qs else self.interp.represent_output([output for asked_q, output in examples if asked_q == label_q.input_id][0])
+            pruning_power = self.get_labelling_q_pruning_power(inp, label_q.obj_id, label_q.attr_id, progs, q_index, output, partial_conf)
             if len(pruning_power.answer_list) == 0:
-                pruning_power = self.get_labelling_q_pruning_power(abs_img, obj_id, key, progs, q_index, output, False)
+                pruning_power = self.get_labelling_q_pruning_power(inp, label_q.obj_id, label_q.attr_id, progs, q_index, output, False)
             if len(pruning_power.answer_list) == 0:
                 continue
             pruning_power_per_question.append(pruning_power)
