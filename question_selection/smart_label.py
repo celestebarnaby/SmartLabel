@@ -16,17 +16,28 @@ class SmartLabel(QuestionSelector):
             skipped_inputs, 
             semantics
             ):
+        '''
+        The question selection algorithm described in the paper. Selects the question with optimal pruning power. First, computes the partial
+        pruning power of each question using BCE, and then computes the complete pruning power of of questions enumeratively until the 
+        optimal question is found.
+        '''
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
 
+        # Get partial pruning power of each question.
         pruning_power_per_question = self.get_all_qs_pruning_power(program_space, input_space, labelling_qs, examples, skipped_inputs, partial_conf=True)
         pruning_power_per_question.sort()
 
         found_optimal_q = False
         concrete_pruning_powers = []
+
         while not found_optimal_q:
+
+            # In each iteration, pop the question with optimal upper bound on pruning power.
             possible_best_q = pruning_power_per_question.pop(0)
             q_index = possible_best_q.q_index
             q_type = possible_best_q.q_type 
+
+            # Compute the complete pruning power of just that question.
             if q_type == "input":
                 pruning_power = self.get_input_q_pruning_power(input_space[q_index], False, program_space, q_index)
             else:
@@ -41,9 +52,13 @@ class SmartLabel(QuestionSelector):
                 else:
                     output = None
                 pruning_power = self.get_labelling_q_pruning_power(inp, obj_id, attr_id, program_space, q_index, output, False)
+
             concrete_pruning_powers.append(pruning_power)
             if pruning_power.answer_list[-1] == len(program_space) and len(pruning_power_per_question) > 0:
                 continue 
+
+            # If the best concrete pruning power we have seen so far is greater than other upper bounds and concrete pruning powers,
+            # This MUST be the optimal question.
             if len(pruning_power_per_question) == 0 or pruning_power < pruning_power_per_question[0]:
                 found_optimal_q = True 
                 concrete_pruning_powers.sort()
@@ -58,17 +73,18 @@ class SmartLabel(QuestionSelector):
                     break
                 
         if optimal_answer_list[-1] == len(program_space):
-            # Just arbitrarily pick some label question where there is a weird universe
+            # It is possible that all questions have 0 pruning power, since we are sampling a subset of the program space.
+            # If this happens, select a "backup" question that will prune at least 1 program.
             options = sorted([i for i, label_q in enumerate(labelling_qs) if label_q.input_id == self.backup_question_index])
-            # TODO: does this ever happen ?
             if len(options) == 0:
-                print(f"Back up question index: {self.backup_question_index}")
-                print(f"Current examples: {examples}")
-                raise TypeError 
-            optimal_q_type = "label"
-            optimal_q = options[0]
-            optimal_answer_list = None
+                optimal_q_type = "input"
+                q_index = self.backup_question_index
+            else:
+                optimal_q_type = "label"
+                optimal_q = options[0]
+                optimal_answer_list = None
 
+        # Ask the optimal question
         if optimal_q_type == "label":
             labelling_q = labelling_qs.pop(optimal_q)
             inp_id = labelling_q.input_id 
@@ -88,11 +104,16 @@ class SmartLabel(QuestionSelector):
     
 
     def get_input_q_pruning_power(self, q, partial_conf, progs, img):
+        '''
+        Compute the pruning power of an input question. 
+        '''
         answer_to_freq = {}
+        # Under BCE, sample just a subset of the universes of the input
         if partial_conf:
-            num_samples = int(len(q["conf_list"]) * PARTIAL_AMT) if int(len(q["conf_list"]) * PARTIAL_AMT) > 0 else min(MIN_SAMPLES, len(q["conf_list"]))
+            num_samples = self.interp.get_num_partial_conf_samples(len(q["conf_list"]))
             random.seed(123)
             conf_list = random.sample(q["conf_list"], num_samples)
+        # Otherwise, consider all universes
         else:
             conf_list = q["conf_list"]
         for prog in progs:
@@ -102,13 +123,21 @@ class SmartLabel(QuestionSelector):
                     answer_to_freq[answer] = 0
                 answer_to_freq[answer] += 1
 
+        # Sort answer frequencies. A question's pruning power is proportional to how many programs its WORST answer will prune. 
         answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
         return PruningPowerInfo(answer_nums, img, "input", partial_conf)
     
 
     def get_labelling_q_pruning_power(self, inp, obj_id, key, progs, q_index, output, partial_conf):
+        '''
+        Compute the pruning power of a labelling question
+        '''
+
+        # Get all potential answers to the question
         answers_to_labelling_q = self.interp.get_labelling_q_answers(inp, obj_id, key)
         answer_to_freq = {}
+
+        # Consider the answers we would get to the input question for each potential answer to the labelling question.
         for label_q_answer in answers_to_labelling_q:
             original_obj = self.interp.set_labelling_q_answer(inp["conf"], obj_id, key, label_q_answer)
             universes = self.interp.get_all_universes(inp["conf"])
@@ -130,10 +159,13 @@ class SmartLabel(QuestionSelector):
 
 
     def get_all_qs_pruning_power(self, progs, input_qs, labelling_qs, examples, skipped_inputs, partial_conf=False):
+        '''
+        Compute the pruning powers of all questions. If partial_conf is True, use BCE.
+        '''
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         pruning_power_per_question = []
 
-        # input questions
+        # First, get pruning powers of all input questions
         for inp in input_qs:
             if inp in INDIST_INPS:
                 continue
@@ -142,7 +174,7 @@ class SmartLabel(QuestionSelector):
             pruning_power = self.get_input_q_pruning_power(input_qs[inp], partial_conf, progs, inp)
             pruning_power_per_question.append(pruning_power)
 
-        # labelling questions
+        # Then get pruning powers of all labelling questions
         for q_index, label_q in enumerate(labelling_qs):
             if label_q.input_id in INDIST_INPS:
                 continue
@@ -168,28 +200,40 @@ class PruningPowerInfo:
         self.partial_conf = partial_conf
 
     def __lt__(x, y):
-        # check if the WORST ANSWERS are equal
+        """
+        Comparing the pruning powers of 2 questions.
+        """
+
+        # The case that both questions have EQUIVALENT answer lists
         if x.answer_list[0] == y.answer_list[0]:
-            # if ONLY ONE is partial_conf 
+            # If only ONE pruning power if partial, the complete pruning power is greater
             if x.partial_conf and not y.partial_conf:
                 return False
             elif y.partial_conf and not x.partial_conf:
                 return True
-            # if the answer list AND the question type are the same, fall back to question index
+            # If both questions also have the same type, defer to index
             if x.q_type == y.q_type:
                 return x.q_index < y.q_index 
-            # if the answer lists are the same, prioritize the input question
+            # If the questions have different types, the label question is greater
             return x.q_type == "label"
-        # if the answer lists are different, prioritize whichever one has more pruning power
+        # If the answer lists are different, compare and return the question with the better answer list
         return more_pruning_power(x.answer_list, y.answer_list)
 
 
-
-# does l1 have more pruning power than l2?
 def more_pruning_power(l1, l2):
+    """
+    Returns True if l1 has more pruning power than l2, and False otherwise.
+
+    Args:
+        l1 (List[int]): The first answer list
+        l2 (List[int]): The second answer list
+
+    The goal is to identify the question whose WORST answer will prune the MOST programs from the hypothesis space.
+    The answer list 
+    """
     i = 0
     while i < min(len(l1), len(l2)):
-        # TODO is this ok
+
         if l1[i] == 0:
             return False
         elif l2[i] == 0:

@@ -17,11 +17,23 @@ class LearnSy(QuestionSelector):
             skipped_inputs, 
             semantics
             ):
+        '''
+        LearnSy baseline in our evaluation. Finds the optimal question using the following objective function:
+
+        obj_0(C, in, A) = Pr [p \in C \proj (A ^ (f(in)=a*)) | p* \in C \proj A] 
+
+        Where C is the program space, A is set of I/O examples, p is randomly sampled from the distribution of the program space, 
+        p* is the ground truth program, and a* is the ground truth output to p* on input in. 
+        LearnSy selects the input that minimizes the probability that a random program p satisfies the assumption after input in is added. 
+        Put another way, it selects the input that maximizes the expected number of pruned programs.
+        Instead of computing the objective directly, LearnSy learns models for each input that predicts the likelihood that two
+        programs will have different outputs on that input. 
+        '''
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         best_obj = None 
         best_q = None
 
-        # get objectives for input questions
+        # Get objective values for all questions
         for inp, model in self.models.items():
             if inp in current_qs:
                 continue
@@ -33,6 +45,9 @@ class LearnSy(QuestionSelector):
     
 
     def approximate_obj(self, model, program_space):
+        '''
+        Applies the corresponding model to the program space to compute the approximated objective value.
+        '''
         total = 0
         self_per_rule, cross_per_rule_pair = model
         for prog1, prog2 in itertools.combinations(program_space, 2):
@@ -41,7 +56,12 @@ class LearnSy(QuestionSelector):
     
 
     def learn_models(self, input_space, semantics, synthesizer):
+        '''
+        For each input, learns a model that predicts the probability that 2 programs will have the same output given that input.
+        '''
+
         print("Learning models...")
+        # Computes a program space to use as training data
         program_space = synthesizer.synthesize_for_learnsy()
         grammar_rule_to_progs = {}
         for prog in program_space:

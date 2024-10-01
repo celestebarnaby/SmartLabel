@@ -106,7 +106,7 @@ class MNISTInterpreter(Interpreter):
         if obj_id == "img-list":
             inp["conf"][obj_id][key] = [inp['gt'][obj_id][key]]
         else:
-            inp[obj_id] = [inp['gt'][obj_id]]
+            inp["conf"][obj_id] = [inp["gt"][obj_id]]
         return True
         
 
@@ -330,20 +330,30 @@ def fold_fn(args, inp, is_standard):
 
 # TODO: IMPROVE
 def fold_fn_backwards(goal, children, inp):
+    '''
+    Performs backward AI on a fold expression.
+    '''
     f = children[0]
     b = children[1]
     xs = children[2]
     new_abs_value = []
+    
+    # Enumerate all items in the child list of fold
     for i, (interval, val) in enumerate(xs.abs_value + [b.abs_value]):
         is_b_value = (i == len(xs.abs_value))
         if f.name == "plus":
+
+            # Compute the smallest and largest possible values that this item could have, w.r.t. the abstract values of all OTHER items in the list,
+            # (derived during forward AI), and the backward semantics of the fold function.
             smallest_val = sum([other_interval[0] for j, (other_interval, other_val) in enumerate(xs.abs_value + [b.abs_value]) if other_interval is not None and i != j and not other_val])
-            largest_val = sum([other_interval[1] for j, (other_interval, _) in enumerate(xs.abs_value + [b.abs_value]) if other_interval is not None and i != j]) #if not val else interval[1] 
+            largest_val = sum([other_interval[1] for j, (other_interval, _) in enumerate(xs.abs_value + [b.abs_value]) if other_interval is not None and i != j]) 
             if interval is None:
                 if is_b_value:
                     raise TypeError
                 new_abs_value.append((interval, val))
                 continue
+
+            # Intersect the newly derived range with the previously derived abstract output. 
             new_interval = intersect_intervals(interval, (max(0, goal[0] - largest_val), goal[1] - smallest_val if not val else interval[1]))
             if new_interval is None:
                 if is_b_value:
@@ -359,7 +369,7 @@ def fold_fn_backwards(goal, children, inp):
                     new_abs_value.append((new_interval, val))
         elif f.name == "mult":
             smallest_val = math.prod(([other_interval[0] for j, (other_interval, other_val) in enumerate(xs.abs_value + [b.abs_value]) if other_interval is not None and i != j and not other_val])) 
-            # special case where other_val == True but other_interval[0] == 0
+            # Special case just for multiplication where other_val == True but other_interval[0] == 0
             if any([other_interval[0] == 0 for j, (other_interval, _) in enumerate(xs.abs_value + [b.abs_value]) if other_interval is not None and i != j]):
                 smallest_val = 0
             largest_val = math.prod([other_interval[1] for j, (other_interval, _) in enumerate(xs.abs_value + [b.abs_value]) if other_interval is not None and i != j]) #if not val else interval[1]

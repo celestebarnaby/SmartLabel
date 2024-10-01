@@ -1,5 +1,4 @@
 from image_edit_domain.image_edit_dsl import *
-from tree import *
 import copy
 from constants import *
 
@@ -47,7 +46,6 @@ def get_expressions(
                 )
             ),
     map_weight = 3 if isinstance(parent_expr, Map) else 2
-    # # map_weight = 1
     exprs += [
         (
             Map(None, None, pos),
@@ -71,12 +69,18 @@ def get_positions() -> List[Position]:
     ]
 
 def get_abs_img_overapprox(abs_img, semantics):
+    '''
+    Returns all objects that are DEFINITELY in the image (i.e. there is no uncertainty in the conformal prediction)
+    '''
     if semantics == "standard":
         return set(abs_img[semantics].keys())
     return set(abs_img['conf'].keys())
 
 
 def get_abs_img_underapprox(abs_img, semantics):
+    '''
+    Returns all objects that MIGHT be in the image (i.e. there IS uncertainty in the conformal prediction)
+    '''
     if semantics == "standard":
         return set(abs_img[semantics].keys())
     return set([obj_id for obj_id, obj in abs_img["conf"].items() if obj["Flag"]])
@@ -103,12 +107,15 @@ def get_ast_size(prog, map_parent=False):
             + 1
             + (1 if map_parent else 0)
         )
-    # base case prog or hole
     else:
         return 1
     
 
 def invalid_output(output_over_per_example, output_under_per_example, prog_output_per_example):
+    '''
+    Determines whether a partial program is invalid (because no completion could match the over-/under-approximated goal output).
+    Used for pruning during synthesis.
+    '''
     for goal_over, goal_under, (prog_under, prog_over) in zip(output_over_per_example, output_under_per_example, prog_output_per_example):
         if (
             goal_under.difference(prog_over) or prog_under.difference(goal_over)
@@ -129,7 +136,7 @@ def construct_prog_from_tree(tree, node_num=0, should_copy=False):
         child_nums = tree.to_children[node_num]
     else:
         child_nums = []
-    # TODO: what are all these things??
+    # Ignore values that are not relevant to the AST
     child_types = [
         item for item in list(prog_dict) if item not in {"position", "val", "output_over", "output_under", "abs_value", "formula"}
     ]
@@ -154,6 +161,9 @@ def update_abs_output(expression, new_under, new_over):
 
 
 def is_contained(bbox1, bbox2, include_edges=False):
+    '''
+    Determines whether one bounding box is contained inside another
+    '''
     left1, top1, right1, bottom1 = bbox1
     left2, top2, right2, bottom2 = bbox2
     if include_edges:

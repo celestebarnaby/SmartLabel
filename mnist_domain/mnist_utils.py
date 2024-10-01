@@ -25,9 +25,12 @@ def load_mnist():
             imgs.append(Image(preds, gt))
     return imgs
 
-# Compute the quantile value corresponding to the point-predictor's output
 def get_w_alg():
-    # imgs = load_mnist() # Assuming this dataset to be output of alg
+    '''
+    We use a dataset of labeled MNIST digits to compute a thresholding score. This score ensures that 
+    1) The ground truth value will be contained in the prediction set with 1 - \delta probability.
+    2) The prediction sets will be as small as possible while still guaranteeing (1)
+    '''
     scores = list()
     for img in MNIST_IMGS:
         label = img.gt
@@ -36,8 +39,12 @@ def get_w_alg():
 
     return get_w_conformal(scores)
 
-# Most relevant function: Given a list of non-conformity scores, return the appropriate threshold value corresponding to (1 - delta) coverage
+
 def get_w_conformal(scores):
+     '''
+     A helper function for computing the thresholding score. Given a list of non-conformity scores from the calibration dataset,
+     return the appropriate thresholding score corresponding to (1 - delta) coverage. 
+     '''
      calibration_size = len(scores)
      desired_quantile = np.ceil((1 - MNIST_DELTA) * (calibration_size + 1)) / calibration_size
      chosen_quantile = np.minimum(1.0, desired_quantile)
@@ -57,8 +64,10 @@ def get_gt(img_list):
 def get_standard(img_list):
     return sum([img.get_pred() * 10**i for (i, img) in enumerate(img_list)])
 
-# Returns set-valued prediction over {0, 1, ..., 9}
 def get_pred_set(img, w):
+    '''
+    Computes the prediction set of a given MNIST digit w.r.t. a thresholding score w.
+    '''
     pred_set = []
     for i, val in enumerate(img.preds):
         if (-1 * val) <= w:
@@ -66,6 +75,9 @@ def get_pred_set(img, w):
     return pred_set
 
 def get_int(correct_preds, wrong_preds):
+    '''
+    Creates an integer comprised of a predetermined number of MNIST digits.
+    '''
     digit_list = []
     for _ in range(DIGITS_PER_ITEM):
         if random.random() > MNIST_NOISE:
@@ -79,16 +91,10 @@ def join(pred1, pred2):
     return (min(pred1[0], pred2[0]), max(pred1[1], pred2[1]))
 
 
-# TODO: DELETE if not necessary
-# def join_intervals(interval1, interval2):
-
-#     new_interval = (max(interval1[0], interval2[0]), min(interval1[1], interval2[1]))
-#     if new_interval[0] > new_interval[1]:
-#         return None 
-#     return new_interval
-
 def intersect_intervals(interval1, interval2):
-
+    '''
+    Compute the intersection of 2 integer intervals in the MNIST domain.
+    '''
     if interval2 is None:
         raise TypeError
         return None

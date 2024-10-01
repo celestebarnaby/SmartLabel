@@ -9,6 +9,10 @@ from utils import *
 
 class ActiveLearning(ABC):
     def __init__(self, semantics, question_selection):
+        '''
+        This is the base class for active learning. Each domain requires its own subclass with its own interpreter, 
+        synthesizer, benchmarks, and question space.
+        '''
         self.semantics = semantics 
 
         self.question_selection = question_selection(None)
@@ -32,7 +36,9 @@ class ActiveLearning(ABC):
         pass 
 
     def run(self, benchmark, program_space):
-        self.set_question_space(benchmark)
+        '''
+        Runs the active learning procedure, and outputs a single program.
+        '''
         time_per_round = []
         INDIST_INPS[:] = []
         try:
@@ -41,6 +47,9 @@ class ActiveLearning(ABC):
             while True:
                 print(f"Starting Round {rounds}!")
                 round_start_time = time.perf_counter()
+
+                # The program space may be empty only if the ground truth program's prediction set(s) did not contain the ground truth output(s)/
+                # Under our conformal guarantee, this happens with low probability.
                 if len(program_space) == 0:
                     print("Active learning failed.")
                     return "FAIL", time_per_round, skipped_inputs
@@ -52,16 +61,18 @@ class ActiveLearning(ABC):
                     print("Synthesized prog: {}".format(program_space[0]))
                     return program_space, time_per_round, skipped_inputs
                 random.seed(123)
+                # Sample a subset of the program space
                 samples = random.sample(program_space, min(NUM_SAMPLES, len(program_space)))
                 new_input_question = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
-                # this will happen if the question is a labelling question
+                # This will happen if the question is a labelling question
                 if new_input_question is None:
                     pass 
                 else: 
                     print(f"Asking input question with id: {new_input_question}")
-                    # get the ground truth answer to the question
+                    # Get the ground truth answer to the question, and add to set of examples
                     new_answer = self.interp.eval_standard(self.gt_prog, self.input_space[new_input_question]["gt"]) 
                     self.add_example(new_input_question, new_answer, skipped_inputs)
+                # Update the program space with new I/O examples
                 program_space = self.question_selection.prune_program_space(program_space, [(self.input_space[q], a) for q, a in self.examples], self.semantics)
                 rounds += 1
                 time_per_round.append(time.perf_counter() - round_start_time)

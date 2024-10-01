@@ -68,65 +68,90 @@ class ImageEditInterpreter(Interpreter):
             goal_over, 
             constraints
     ):
+        # When we reach a leaf node in the AST, we check whether the leaf node's output on the image is consistent
+        # with the goal output (derived from forward_ai) and with the constraints (derived from other leaf nodes in the program).
+        # If it is not, we return False. Otherwise, we update the constraints and continue backward_ai        
         if isinstance(expr, IsObject):
+            # These are the objects that the leaf node MUST output
             for obj_id in goal_under:
+                # If the image doesn't contain this object, or the object has a different label than the expression, return False
                 if obj_id not in abs_img or abs_img[obj_id]["Label"] != expr.obj:
                     return False
                 if obj_id not in constraints:
                     constraints[obj_id] = {}
 
+                # If our constraints specify that this object CANNOT be output, return False
                 if "Exists" in constraints[obj_id] and not constraints[obj_id]["Exists"]:
                     return False
                 
+                # Update constraints to specify that the object MUST exists
                 constraints[obj_id]["Exists"] = True
+
+            # These are the objects that MUST NOT be output by the leaf node
             for obj_id in set(abs_img.keys()) - goal_over:
+                # If the lead node WILL output the object, return False
                 if abs_img[obj_id]["Flag"] == True and abs_img[obj_id]['Label'] == expr.obj:
                     return False
                 if abs_img[obj_id]['Label'] == expr.obj:
                     if obj_id not in constraints:
                         constraints[obj_id] = {}
 
+                    # If our constraints specify that the object MUST be output, return False
                     if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"]:
                         return False
-
+                    
+                    # Update our constraints to specify that the object MUST NOT exist
                     constraints[obj_id]["Exists"] = False 
             return True
+        # Leaf nodes for specific attributes of human faces. This case is similar to the IsObject case.
         elif (
             isinstance(expr, IsSmiling)
             or isinstance(expr, EyesOpen)
             or isinstance(expr, MouthOpen)
         ):
+            # Objects that MUST be output
             for obj_id in goal_under:
+                # If the object does not have the attribute, return False
                 if obj_id not in abs_img or str(expr) not in abs_img[obj_id] or abs_img[obj_id][str(expr)] == [False]:
                     return False 
                 if obj_id not in constraints:
                     constraints[obj_id] = {}
 
+                # If the constraints specify that the object must not exist, return False
                 if "Exists" in constraints[obj_id] and not constraints[obj_id]["Exists"]:
                     return False
+                # If the constraints specify that the object does not have the attribute, return False
                 if str(expr) in constraints[obj_id] and not constraints[obj_id][str(expr)]:
                     return False 
                 
+                # Update the constraints to specify that the object must exist AND must have the attribute
                 constraints[obj_id]["Exists"] = True 
                 constraints[obj_id][str(expr)] = True
 
+            # Object that MUST NOT be output
             for obj_id in set(abs_img.keys()) - goal_over:
+                # If the object exists and definitely has the attribute, return False
                 if abs_img[obj_id]["Flag"] == True and (str(expr) in abs_img[obj_id] and abs_img[obj_id][str(expr)] == [True]):
                     return False 
                 if abs_img[obj_id]["Flag"] and str(expr) in abs_img[obj_id]:
                     if obj_id not in constraints:
                         constraints[obj_id] = {}
 
+                    # If the constraints specify that the object has the attribute, return False
                     if str(expr) in constraints[obj_id] and constraints[obj_id][str(expr)]:
                         return False
 
+                    # Update the constraints to specify that the object MUST NOT have the attribute
                     constraints[obj_id][str(expr)] = False
                 if str(expr) in abs_img[obj_id] and abs_img[obj_id][str(expr)] == [True]:
                     if obj_id not in constraints:
                         constraints[obj_id] = {}
 
+                    # If the object has the attribute and the constraints specify that the object MUST be output, return False
                     if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"]:
                         return False
+                    
+                    # If the object has the attribute, update the constraints to specify that the object MUST NOT be output
                     constraints[obj_id]["Exists"] = False
             return True
         elif isinstance(expr, Complement):
@@ -134,26 +159,32 @@ class ImageEditInterpreter(Interpreter):
             sub_expr_over = set(abs_img.keys()) - goal_under
             if not update_abs_output(expr.expression, sub_expr_under, sub_expr_over):
                 return False 
+            # Recursively perform backward AI on the subexpression of compement
             return self.backward_ai(expr.expression, abs_img, expr.expression.abs_value[0], expr.expression.abs_value[1], constraints)
         elif isinstance(expr, Union):
             for i, sub_expr in enumerate(expr.expressions):
+                # Overapproximated output of subexpression consists of all objects in the overapproximated goal output
                 sub_expr_over = goal_over
                 sub_expr_under = goal_under
+                # Underapproximated output of union's subexpression consist of all objects that in the goal output
+                # that MUST NOT be output by ANY OTHER subexpression
                 for j, other_sub_expr in enumerate(expr.expressions):
                     if i == j:
                         continue 
                     sub_expr_under = sub_expr_under - other_sub_expr.abs_value[1] 
                 if not update_abs_output(sub_expr, sub_expr_under, sub_expr_over):
                     return False
+                # Recursively perform backward AI on the subexpressions of union
                 if not self.backward_ai(sub_expr, abs_img, sub_expr.abs_value[0], sub_expr.abs_value[1], constraints):
                     return False
             return True 
         elif isinstance(expr, Intersection):
             for i, sub_expr in enumerate(expr.expressions):
+                # Underapproximated output of subexpression consists of all objects in the underapproximated goal output
                 sub_expr_under = goal_under 
-                # these are the objects that the expr CAN'T output
+                # These are the objects that must not be output by ALL subexpressions of intersection
                 impossible_objs = set(abs_img.keys()) - goal_over
-                # if EVERY OTHER sub expr MUST output this object, then the ith sub expr CAN'T
+                # If EVERY OTHER sub expr MUST output this object, then the ith sub expr CAN'T
                 for j, other_sub_expr in enumerate(expr.expressions):
                     if i == j:
                         continue
@@ -184,6 +215,10 @@ class ImageEditInterpreter(Interpreter):
 
 
     def eval_map_abs(self, prog, abs_img):
+        '''
+        Performs forward AI on a Map expression
+        '''
+        # Recursively perform forward AI on both subexpressions of the Map expression
         (objs_under, objs_over) = self.forward_ai(prog.expression, abs_img)
         (rest_under, rest_over) = self.forward_ai(prog.restriction, abs_img)
         mapped_objs_under = set()
@@ -387,7 +422,7 @@ class ImageEditInterpreter(Interpreter):
         self,
         expr: Expression,
         abs_img: Dict[str, Dict[str, Any]],
-    ):  # -> Set[dict[str, str]]:
+    ):  
         if isinstance(expr, Map):
             res = self.eval_map_standard(expr, abs_img)
         elif isinstance(expr, IsObject):
@@ -603,8 +638,10 @@ class ImageEditInterpreter(Interpreter):
         return True
     
 
-    # TODO: I should be able to make this language agnostic...?
     def apply_model(self, self_per_rule, cross_per_rule_pair, prog1, prog2):
+        '''
+        For LearnSy only. 
+        '''
         if prog1.get_grammar_rule() != prog2.get_grammar_rule():
             return cross_per_rule_pair[str(sorted([prog1.get_grammar_rule(), prog2.get_grammar_rule()]))]
         if self.no_children(prog1.get_grammar_rule()):
@@ -620,6 +657,9 @@ class ImageEditInterpreter(Interpreter):
         
 
     def matches_constraints(self, abs_img, constraints):
+        '''
+        Checks whether an image matches the constraints generated during backward AI.
+        '''
         for obj_id in constraints:
             if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"] and obj_id not in abs_img:
                 return False 
@@ -706,22 +746,26 @@ class ImageEditInterpreter(Interpreter):
 
     def ask_labelling_question(self, abs_img, key, obj_id, img):
 
-        # we must find the ground truth label that corresponds to the predicted label
+        # Find the ground truth label that corresponds to the predicted label
         gt_ids = {gt_id for gt_id in abs_img["gt"] if abs_img["gt"][gt_id]["Label"] == abs_img["conf"][obj_id]["Label"]}
 
-        # The object does not exist in the ground truth
+        # If the object does not exist in the ground truth, then the user cannot label this image. 
+        # We delete the object from the conformal prediction, and return the image 
         if len(gt_ids) == 0:
             del abs_img["conf"][obj_id]
             return img
+        # Select the ground truth object with maximal IOU with predicted object
         gt_id = max(gt_ids, key=lambda x: get_iou(abs_img["gt"][x]["bbox"], abs_img["conf"][obj_id]["bbox"]))
         if get_iou(abs_img["gt"][gt_id]["bbox"], abs_img["conf"][obj_id]["bbox"]) < MIN_IOU:
-            # there is NO matching ground truth label -- i.e., the predicted object does not exist
+            # If there is NO matching ground truth label -- i.e., the predicted object does not exist in the image,
+            # we again delete the object from the conformal prediction and return
             del abs_img["conf"][obj_id]
             return img
 
         if key == "Flag":
-            # Object DOES exist in ground truth
+            # If the object DOES exist in ground truth, we set flag to True
             abs_img["conf"][obj_id]["Flag"] = True 
         else:
+            # If the key is a specific attribute, we set the conformal prediction to the correct value
             gt_val = abs_img["gt"][gt_id][key] if key in abs_img["gt"][gt_id] else False
             abs_img["conf"][obj_id][key] = [gt_val]

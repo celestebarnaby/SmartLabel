@@ -1,3 +1,5 @@
+import random
+
 from question_selection.smart_label import SmartLabel
 
 
@@ -15,31 +17,38 @@ class SelectAbstract(SmartLabel):
             skipped_inputs, 
             semantics
             ):
+        '''
+        Selects the program with maximal ABSTRACT pruning power derived using BCE.
+        An ablation in our evaluation.
+        '''
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
 
+        # Computes only the partial pruning power of each question.
         pruning_power_per_question = self.get_all_qs_pruning_power(program_space, input_space, labelling_qs, examples, skipped_inputs, partial_conf=True)
         pruning_power_per_question.sort()
-        best_q = pruning_power_per_question[0]
-        q_index = best_q.q_index
-        q_type = best_q.q_type
+        if len(pruning_power_per_question) == 0:
+            remaining_input_questions = [inp_id for inp_id in input_space.keys() if inp_id not in current_qs]
+            if len(remaining_input_questions) > 0:
+                return random.choice(remaining_input_questions)
+            if len(labelling_qs) == 0:
+                raise TypeError
+            q_type = "label"
+            q_index = random.randint(0, len(labelling_qs) - 1)
+        else:
+            best_q = pruning_power_per_question[0]
+            q_index = best_q.q_index
+            q_type = best_q.q_type
 
-        print("Best question num: {}".format(best_q.answer_list))
-        print("Optimal question index: {}".format(q_index))
-        print(f"Question type: {q_type}")
-        print(f"# questions: {len(pruning_power_per_question)}")
-        print(f"# labelling questions: {len(labelling_qs)}")
-        print(f"# input q's: {len(input_space)}")
-        print([item.answer_list for item in pruning_power_per_question[:5]])
         if q_type == "label":
-            img, obj_id, key = labelling_qs.pop(q_index)
-            print(f"Label question img: {img}")
-            print(f"Label question obj id: {obj_id}")
-            print(f"Label question key: {key}")
-            abs_img = input_space[img]
-            skip = self.ask_labelling_question(abs_img, key, obj_id, img)
+            label_q = labelling_qs.pop(q_index)
+            inp_id = label_q.input_id 
+            obj_id = label_q.obj_id 
+            key = label_q.attr_id
+            inp = input_space[inp_id]
+            skip = self.interp.ask_labelling_question(inp, key, obj_id, inp_id)
             if skip is not None:
-                labelling_qs[:] = [(other_img, other_obj_id, other_key) for (other_img, other_obj_id, other_key) in labelling_qs if img != other_img or obj_id != other_obj_id]
-            if img not in current_qs:
-                return img 
+                labelling_qs[:] = [other_label_q for other_label_q in labelling_qs if inp_id != other_label_q.input_id or obj_id != other_label_q.obj_id]
+            if inp_id not in current_qs:
+                return inp_id 
             return None 
         return q_index

@@ -28,14 +28,23 @@ class ImageEditSynthesizer(Synthesizer):
         self.all_objects = [label for label, occs in sorted_labels_to_occs if occs >= max(len(input_space) * .05, 3)]
 
     def synthesize(self, examples):
+        '''
+        Given a set of I/O examples, perform top-down enumeration up to a set AST size, and return all programs matching 
+        the I/O examples
+        '''
         output_per_example = [output for _, output in examples]
         self.output_dict[str(output_per_example)] = output_per_example
 
         progs_matching_examples = []
         seen_progs = set()
+        
+        # The function that we use to check whether an enumerated program matches the I/O examples (varies depending on semantics)
         check = self.interp.get_check(self.semantics)
+        
+        # The function that we use to perform equivalence reduction on enumerated programs (varies depending on semantics)
         simplify = get_simplify(self.semantics)
 
+        # Create an initial partial program consistent of just a hole
         tree = Tree(next(self.program_counter))
         tree.nodes[0] = Hole(0, "expr", str(output_per_example), str(output_per_example))
         tree.var_nodes.append(0)

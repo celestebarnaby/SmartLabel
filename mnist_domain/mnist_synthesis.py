@@ -14,12 +14,16 @@ class MNISTSynthesizer(Synthesizer):
         self.program_counter = itertools.count(0)
 
     def synthesize(self, examples):
+        # We use 'int' as a start symbol - meaning our program space consists only of programs that output integers.
         grammar = get_grammar(START_SYMBOL)
         check = self.interp.get_check(self.semantics)
         _, program_space = self.synth_helper(MNIST_AST_DEPTH, grammar, grammar.start, examples, check)
         return program_space
     
     def synthesize_for_learnsy(self):
+        '''
+        Returns ALL possible programs and subprograms, not just ones that return integers. Used to learn models for LearnSy.
+        '''
         grammar = get_grammar(START_SYMBOL)
         return sum([self.synth_helper(MNIST_AST_DEPTH, grammar, symb, [], lambda x, y: True)[0] for symb in {'list-int', 'int', 'const-int', 'int->int', 'int->bool', 'int->int->int', 'int->int->bool', 'pimg-int->int', 'list-pimg-int', 'pimg-int', 'const-int'}], [])
     

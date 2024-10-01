@@ -41,20 +41,21 @@ def run_experiments(domain):
              "Time Per Round",
             )]
 
+    # Our technique, baselines, and ablations
     test_settings = [
-        # # LearnSy
+        # # LearnSy (baseline)
         ("standard", LearnSy),
-        # # SampleSy
+        # # SampleSy (baseline)
         ("standard", SampleSy),
-        # # SmartLabel Abstract Ablation
+        # # SmartLabel Abstract (ablation)
         ("CCE", SelectAbstract),
-        # # SmartLabel
+        # # SmartLabel (our technique)
         ("CCE", SmartLabel),
-        # # CCE-NoAbs
+        # # CCE-NoAbs (ablation)
         ("CCE-NoAbs", SmartLabel),
-        # # QS-noUB
+        # # QS-noUB (ablation)
         ("CCE", SmartLabelNoUB),
-        # Select random question
+        # Select random question (baseline)
         ("CCE", SelectRandom),
     ] 
 
@@ -64,7 +65,11 @@ def run_experiments(domain):
         pr.enable()
         active_learning = domain(semantics, question_selection)
         for benchmark in active_learning.benchmarks:
+
+            # Generate the input space, question space, and initial examples specific to the domain
             active_learning.set_question_space(benchmark)
+
+            # Learn models for inputs (this is specific to the LearnSy baseline)
             active_learning.question_selection.learn_models(active_learning.input_space, semantics, active_learning.synth)
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")

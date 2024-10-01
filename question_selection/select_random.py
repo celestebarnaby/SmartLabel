@@ -17,16 +17,24 @@ class SelectRandom(QuestionSelector):
             skipped_inputs, 
             semantics
             ):
+        """
+        In the SelectRandom question, we simply select a random, unanswered labelling question.
+        If the input question corresponding to the labelling question has also not been answer,
+        we return that input question as well.
+        """
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         random.seed(123)
         i = random.choice(list(range(len(labelling_qs))))
-        img, obj_id, key = labelling_qs.pop(i)
-        abs_img = input_space[img]
-        skip = self.ask_labelling_question(abs_img, key, obj_id, img)
+        label_q = labelling_qs.pop(i)
+        inp_id = label_q.input_id 
+        obj_id = label_q.obj_id 
+        key = label_q.attr_id 
+        inp = input_space[inp_id]
+        skip = self.interp.ask_labelling_question(inp, key, obj_id, inp_id)
         if skip is not None:
-            labelling_qs[:] = [(other_img, other_obj_id, other_key) for (other_img, other_obj_id, other_key) in labelling_qs if img != other_img or obj_id != other_obj_id]
-        if img not in current_qs:
-            return img 
+            labelling_qs[:] = [other_label_q for other_label_q in labelling_qs if inp_id != other_label_q.input_id or obj_id != other_label_q.obj_id]
+        if inp_id not in current_qs:
+            return inp_id 
         return None
     
 

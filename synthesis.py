@@ -8,6 +8,11 @@ class Synthesizer(ABC):
 
     @abstractmethod 
     def synthesize(self, examples):
+        """
+        Synthesize the hypothesize space of programs that are consistent with the initial set of I/O examples.
+
+        Returns: a list of programs in the given DSL
+        """
         pass 
 
 

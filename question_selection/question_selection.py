@@ -17,14 +17,23 @@ class QuestionSelector(ABC):
             skipped_inputs, 
             semantics
             ):
+        '''
+        Selects the question that will optimally prune the program space
+        '''
         pass
 
     def learn_models(self, input_space, semantics, synthesizer):
+        '''
+        For LearnSy only.
+        '''
         return {}
 
 
     def distinguish(self, program_space, input_qs, examples, skipped_inputs):
-        # TODO: REMOVE LATER!!
+        '''
+        Determines whether all programs in program space are observationally equivalent 
+        w.r.t. the input space.
+        '''
         input_qs = sorted(list(input_qs.items()))
         for inp_id, inp in input_qs:
             if inp_id in INDIST_INPS:
@@ -40,6 +49,10 @@ class QuestionSelector(ABC):
     
 
     def prune_program_space(self, program_space, examples, semantics):
+        '''
+        Updates the program space to contain only programs that are consistent with the current
+        set of I/O examples.
+        '''
         new_program_space = []
         check = self.interp.get_check(semantics)
         for prog in program_space:

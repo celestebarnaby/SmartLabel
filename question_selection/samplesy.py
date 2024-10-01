@@ -14,6 +14,10 @@ class SampleSy(QuestionSelector):
             skipped_inputs, 
             semantics
             ):
+        '''
+        The SampleSy baseline used in our evaluation. Selects the question with maximal pruning power
+        under standard semantics. 
+        '''
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         best_question = None 
         best_question_nums = None 
@@ -35,6 +39,9 @@ class SampleSy(QuestionSelector):
     
 
     def distinguish(self, program_space, input_qs, examples, skipped_inputs):
+        '''
+        Determines whether all programs are observationally equivalent w.r.t. input space, under standard semantics
+        '''
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         questions_and_outputs = []
         for prog in program_space[1:]:
