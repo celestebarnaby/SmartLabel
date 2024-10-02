@@ -76,7 +76,6 @@ class ActiveLearning(ABC):
                 program_space = self.question_selection.prune_program_space(program_space, [(self.input_space[q], a) for q, a in self.examples], self.semantics)
                 rounds += 1
                 time_per_round.append(time.perf_counter() - round_start_time)
-                print()
         except TimeOutException:
             return "TIMEOUT", time_per_round, skipped_inputs
         

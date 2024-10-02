@@ -14,7 +14,6 @@ class MNISTSynthesizer(Synthesizer):
         self.program_counter = itertools.count(0)
 
     def synthesize(self, examples):
-        # We use 'int' as a start symbol - meaning our program space consists only of programs that output integers.
         grammar = get_grammar(START_SYMBOL)
         check = self.interp.get_check(self.semantics)
         _, program_space = self.synth_helper(MNIST_AST_DEPTH, grammar, grammar.start, examples, check)
@@ -56,6 +55,8 @@ class MNISTSynthesizer(Synthesizer):
                     expr = Expr(rule[0], children)
                     exprs.append(expr)
                     if symb == "int":
+                        # print('asdfasdf')
+                        # print(examples)
                         if check(expr, examples):
                             exprs_matching_examples.append(expr)
         return exprs, exprs_matching_examples

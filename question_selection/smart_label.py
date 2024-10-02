@@ -76,6 +76,8 @@ class SmartLabel(QuestionSelector):
             # It is possible that all questions have 0 pruning power, since we are sampling a subset of the program space.
             # If this happens, select a "backup" question that will prune at least 1 program.
             options = sorted([i for i, label_q in enumerate(labelling_qs) if label_q.input_id == self.backup_question_index])
+            print("Using backup question!")
+            print(f"Num options: {len(options)}")
             if len(options) == 0:
                 optimal_q_type = "input"
                 q_index = self.backup_question_index

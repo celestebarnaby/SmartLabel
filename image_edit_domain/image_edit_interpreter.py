@@ -720,24 +720,24 @@ class ImageEditInterpreter(Interpreter):
 
     def set_labelling_q_answer(self, inp, obj_id, key, answer):
         if key == "Flag":
-            original_obj = inp["conf"][obj_id]
+            original_obj = inp[obj_id]
             if answer:
                 original_obj["Flag"] = True 
             else:
-                del inp["conf"][obj_id]
+                del inp[obj_id]
         else:
-            original_obj = inp["conf"][obj_id][key]
-            inp["conf"][obj_id][key] = [answer]
+            original_obj = inp[obj_id][key]
+            inp[obj_id][key] = [answer]
         return original_obj
         
 
 
     def reset_labelling_q(self, inp, obj_id, key, original_obj):
         if key == "Flag":
-            inp["conf"][obj_id] = original_obj
+            inp[obj_id] = original_obj
             original_obj["Flag"] = False 
         else:
-            inp["conf"][obj_id][key] = [True, False]
+            inp[obj_id][key] = [True, False]
 
 
     def get_num_partial_conf_samples(self, num_universes):

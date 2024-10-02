@@ -51,7 +51,7 @@ class SmartLabelNoUB(SmartLabel):
             attr_id = label_q.attr_id
 
             inp = input_space[inp_id]
-            skip = self.ask_labelling_question(inp, attr_id, obj_id, inp)
+            skip = self.interp.ask_labelling_question(inp, attr_id, obj_id, inp)
             # Update conf_list with the new set of universes
             inp["conf_list"] = self.interp.get_all_universes(inp["conf"])
             if skip is not None:

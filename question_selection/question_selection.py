@@ -42,6 +42,10 @@ class QuestionSelector(ABC):
                 base_prog_output = self.interp.eval_standard(program_space[0], universe)
                 for prog in program_space[1:]:
                     if self.interp.eval_standard(prog, universe) != base_prog_output:
+                        print()
+                        print("Distinguishable programs found!")
+                        print(f"Setting backup question as {inp_id}")
+                        print()
                         self.backup_question_index = inp_id
                         return False 
             INDIST_INPS.append(inp_id)

@@ -23,7 +23,7 @@ class MNISTActiveLearning(ActiveLearning):
     def set_interpreter(self):
         self.interp = MNISTInterpreter()
 
-    def set_question_space(self, benchmark):
+    def set_question_space(self, benchmark, i):
         imgs = load_mnist()
 
         input_space = {}
@@ -32,6 +32,7 @@ class MNISTActiveLearning(ActiveLearning):
         wrongly_predicted_imgs = [img for img in imgs if img.get_pred() != img.gt]
         correctly_predicted_imgs = [img for img in imgs if img.get_pred() == img.gt]
 
+        random.seed(123 + i)
         while len(input_space) < NUM_INPUTS:
             cur_int_list = []
             for _ in range(LIST_LENGTH):
@@ -55,7 +56,7 @@ class MNISTActiveLearning(ActiveLearning):
         gt_prog = self.interp.parse(benchmark.gt_prog)
         self.input_space = input_space 
 
-        random.seed(123)
+        random.seed(123 + i)
         self.examples = [(inp_id, self.interp.eval_standard(gt_prog, inp["gt"])) for inp_id, inp in random.sample(sorted(input_space.items()), NUM_INITIAL_EXAMPLES)] 
         self.labelling_qs = labelling_qs
         self.gt_prog = gt_prog 

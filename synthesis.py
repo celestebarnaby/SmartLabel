@@ -15,6 +15,9 @@ class Synthesizer(ABC):
         """
         pass 
 
+    def synthesize_for_learnsy(self):
+        return self.synthesize([])
+
 
 
 

@@ -107,8 +107,6 @@ class MNISTInterpreter(Interpreter):
             inp["conf"][obj_id][key] = [inp['gt'][obj_id][key]]
         else:
             inp["conf"][obj_id] = [inp["gt"][obj_id]]
-        return True
-        
 
 
 def parse_helper(toks):

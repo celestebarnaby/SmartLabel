@@ -64,10 +64,10 @@ def run_experiments(domain):
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
-        for benchmark in active_learning.benchmarks:
+        for i, benchmark in enumerate(active_learning.benchmarks):
 
             # Generate the input space, question space, and initial examples specific to the domain
-            active_learning.set_question_space(benchmark)
+            active_learning.set_question_space(benchmark, i)
 
             # Learn models for inputs (this is specific to the LearnSy baseline)
             active_learning.question_selection.learn_models(active_learning.input_space, semantics, active_learning.synth)
@@ -77,6 +77,7 @@ def run_experiments(domain):
             print("Performing initial synthesis...")
             initial_synthesis_start_time = time.perf_counter()
             program_space = active_learning.synth.synthesize([(active_learning.input_space[q], a) for q, a in active_learning.examples])
+
             initial_synthesis_time = time.perf_counter() - initial_synthesis_start_time
             print("Initial synthesis complete.")
             initial_program_space_size = len(program_space)
@@ -131,14 +132,8 @@ def csv_to_dict(filename):
 
 
 def get_table_data(domains):
-    setting_to_data_overall = {
-        "runtimes" : [],
-        "num_rounds" : [],
-        "num_init_progs" : [],
-        "num_final_progs" : [],
-        "correct" : 0 
-    }
-    rows = [
+    setting_to_data_overall = {}
+    rows = [[
         "Domain",
         "Test Setting",
         "Avg. # Rounds of Interaction",
@@ -146,7 +141,7 @@ def get_table_data(domains):
         "Avg. # Final Programs",
         "# Benchmarks Solved",
         "Avg. Time per Round of Interaction"
-    ]
+    ]]
     for domain in domains:
         setting_to_data_per_domain = {}
         data_dict = csv_to_dict(f"./output/{domain.__name__}_results.csv")
@@ -171,14 +166,14 @@ def get_table_data(domains):
                 } 
             time_per_round = ast.literal_eval(time_per_round)
             setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
-            setting_to_data_per_domain[key]["num_init_progs"].append(num_initial_programs)
-            setting_to_data_per_domain[key]["num_final_progs"].append(num_final_programs)
-            setting_to_data_per_domain[key]["correct"] += 1 if correct == "TRUE" else 0 
+            setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
+            setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
+            setting_to_data_per_domain[key]["correct"] += 1 if correct == "True" else 0 
 
             setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
-            setting_to_data_overall[key]["num_init_progs"].append(num_initial_programs)
-            setting_to_data_overall[key]["num_final_progs"].append(num_initial_programs)
-            setting_to_data_overall[key]["correct"] += 1
+            setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
+            setting_to_data_overall[key]["num_final_progs"].append(int(num_initial_programs))
+            setting_to_data_overall[key]["correct"] += 1 if correct == "True" else 0
 
             for i, round_time in enumerate(time_per_round):
                 if i == 0:
@@ -205,7 +200,7 @@ def get_table_data(domains):
             np.mean(val["num_init_progs"]),
             np.mean(val["num_final_progs"]),
             val["correct"],
-            val["runtimes"]
+            np.mean(val["runtimes"])
         ])
 
     with open(f"./output/table_data.csv", "w") as f:
@@ -218,8 +213,7 @@ def get_table_data(domains):
 
 
 if __name__ == "__main__":
-    # domains = [ImageEditActiveLearning, MNISTActiveLearning]
-    domains = [MNISTActiveLearning]
+    domains = [ImageEditActiveLearning, MNISTActiveLearning]
     for domain in domains:
         run_experiments(domain)
-    # get_table_data(domains)
+    get_table_data(domains)

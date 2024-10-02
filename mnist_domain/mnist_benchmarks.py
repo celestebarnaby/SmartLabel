@@ -41,6 +41,7 @@ mnist_benchmarks = [
             "(fold mult 1 (map (curry plus 1) (map_imgs pred_int input-list)))",
             "add 1 to all elements and take product",
         ),
+    
         Benchmark(
             "(fold mult 1 (map (curry plus (apply pred_int input-img)) (map_imgs pred_int input-list)))",
             "add k to all elements and take product",
@@ -77,6 +78,7 @@ mnist_benchmarks = [
             "(fold mult 1 (filter (curry le (apply pred_int input-img)) (map (curry mult 2) (map_imgs pred_int input-list))))",
             "multiply elements by 2, filter elements less than k, and return product",
         ),
+
         Benchmark(
             "(length (filter (curry ge (apply pred_int input-img)) (map_imgs pred_int input-list)))",
             "number of elements greater than k",

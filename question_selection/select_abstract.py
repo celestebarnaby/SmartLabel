@@ -27,13 +27,14 @@ class SelectAbstract(SmartLabel):
         pruning_power_per_question = self.get_all_qs_pruning_power(program_space, input_space, labelling_qs, examples, skipped_inputs, partial_conf=True)
         pruning_power_per_question.sort()
         if len(pruning_power_per_question) == 0:
-            remaining_input_questions = [inp_id for inp_id in input_space.keys() if inp_id not in current_qs]
-            if len(remaining_input_questions) > 0:
-                return random.choice(remaining_input_questions)
-            if len(labelling_qs) == 0:
-                raise TypeError
-            q_type = "label"
-            q_index = random.randint(0, len(labelling_qs) - 1)
+            # Use backup question
+            options = sorted([i for i, label_q in enumerate(labelling_qs) if int(label_q.input_id) == int(self.backup_question_index)])
+            if len(options) == 0:
+                q_type = "input"
+                q_index = self.backup_question_index
+            else:
+                q_type = "label"
+                q_index = options[0]
         else:
             best_q = pruning_power_per_question[0]
             q_index = best_q.q_index
@@ -46,9 +47,11 @@ class SelectAbstract(SmartLabel):
             key = label_q.attr_id
             inp = input_space[inp_id]
             skip = self.interp.ask_labelling_question(inp, key, obj_id, inp_id)
+            # Update conf_list 
+            inp["conf_list"] = self.interp.get_all_universes(inp["conf"])
             if skip is not None:
                 labelling_qs[:] = [other_label_q for other_label_q in labelling_qs if inp_id != other_label_q.input_id or obj_id != other_label_q.obj_id]
             if inp_id not in current_qs:
-                return inp_id 
+                return inp_id  
             return None 
         return q_index

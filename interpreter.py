@@ -86,17 +86,18 @@ class Interpreter(ABC):
         Returns:
             True if gt_output is contained in the prediction set output by expr on inp, and False otherwise
         """
-        inp_conf = inp["conf"]
         # Perform forward abstract interpretation
-        self.forward_ai(expr, inp_conf)
+        self.forward_ai(expr, inp["conf"])
         # If the goal output is not contained in the abstract value of the expression, return False
         if not self.gt_matches_abs_output(gt_output, expr.abs_value):
             return False
         constraints = {}
         # Perform backward abstract interpretation. If expr could not possibly output the goal, return False
-        if not self.backward_ai(expr, inp_conf, gt_output, gt_output, constraints):
+        inp_copy = inp.copy()
+        if not self.backward_ai(expr, inp_copy["conf"], gt_output, gt_output, constraints):
             return False
-        inp_conf_list = inp["conf_list"]
+        # TODO: this is not really what we should be doing in MNIST...
+        inp_conf_list = inp_copy["conf_list"]
         # Compute the complete prediction set of the expression on the input.
         complete_pred_set = self.eval_consistent(expr, inp_conf_list, gt_output=self.represent_output(gt_output), constraints=constraints)
         # If the goal is contained in the prediction set, return True. Otherwise return False
@@ -227,7 +228,7 @@ class Interpreter(ABC):
         using our CCE technique with bidirectional abstract reasoning.
         '''
         for inp, output in examples:
-            result = self.eval_cce(prog, inp, output)
+            result = self.eval_cce(prog.duplicate(), inp, output)
             if not result:
                 return False 
         return True
