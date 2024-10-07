@@ -678,11 +678,11 @@ class ImageEditInterpreter(Interpreter):
     
 
     def get_all_universes(self, inp_conf):
-        inp_conf = {}
+        inp_conf_copy = {}
         for key, val in inp_conf.items():
-            inp_conf[key] = [item for item in self.get_all_versions_of_object(val)]
-        keys = list(inp_conf.keys())
-        vals = list(inp_conf.values())
+            inp_conf_copy[key] = [item for item in self.get_all_versions_of_object(val)]
+        keys = list(inp_conf_copy.keys())
+        vals = list(inp_conf_copy.values())
         all_lists = list(itertools.product(*vals))
         all_universes = [{keys[i]: l[i] for i in range(len(l)) if l[i] is not None} for l in all_lists]
         return all_universes

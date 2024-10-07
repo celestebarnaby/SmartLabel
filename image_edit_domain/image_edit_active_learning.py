@@ -36,7 +36,7 @@ class ImageEditActiveLearning(ActiveLearning):
             # TODO: error handling
             raise TypeError 
         input_space = {img : abs_img for img, abs_img in all_images.items() if len(abs_img["conf_list"]) <= MAX_PRED_SET_SIZE}
-        examples = self.get_examples(benchmark.gt_prog, all_images, i)
+        examples = self.get_examples(benchmark.gt_prog, all_images)
         for inp, _ in examples:
             input_space[inp] = all_images[inp]
         labelling_qs = self.get_labelling_qs(input_space)
@@ -47,13 +47,13 @@ class ImageEditActiveLearning(ActiveLearning):
         self.gt_prog = benchmark.gt_prog
 
 
-    def get_examples(self, gt_prog, all_images, i):
+    def get_examples(self, gt_prog, all_images):
         examples = []
         used_imgs = set()
         while len(examples) < NUM_INITIAL_EXAMPLES:
             if len(set(all_images.keys()) - used_imgs) == 0:
                 return examples
-            random.seed(123 + i)
+            random.seed(123)
             inp = random.choice(sorted(list(set(all_images.keys()) - used_imgs)))
             used_imgs.add(inp)
             if len(all_images[inp]["conf_list"]) > MAX_PRED_SET_SIZE:

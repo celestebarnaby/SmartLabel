@@ -72,10 +72,6 @@ class ImageEditSynthesizer(Synthesizer):
 
             hole_num = cur_tree.var_nodes.pop(0)
             hole = cur_tree.nodes[hole_num]
-            # TODO: do we need this??
-            if hole.depth > IMAGE_EDIT_AST_DEPTH:
-                raise TypeError
-                continue 
             node_type = cur_tree.nodes[hole_num].node_type 
             parent_node = None if hole_num == 0 else cur_tree.nodes[cur_tree.to_parent[hole_num]]
             if node_type == "expr":

@@ -60,7 +60,7 @@ class ActiveLearning(ABC):
                     print("All programs indistinguishable! Active learning finished!")
                     print("Synthesized prog: {}".format(program_space[0]))
                     return program_space, time_per_round, skipped_inputs
-                random.seed(123)
+                random.seed(123 + rounds)
                 # Sample a subset of the program space
                 samples = random.sample(program_space, min(NUM_SAMPLES, len(program_space)))
                 new_input_question = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
