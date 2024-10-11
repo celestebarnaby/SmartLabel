@@ -1,9 +1,13 @@
+import copy
 import csv 
 import time 
 import random
 import signal
 import numpy as np 
 import ast
+import matplotlib.pyplot as plt 
+import seaborn as sns 
+import pandas as pd
 
 # Question selection
 from question_selection.learnsy import LearnSy
@@ -25,9 +29,12 @@ import io
 import pstats
 import cProfile
 
+# Constants
+import constants
+
 def run_experiments(domain):
 
-    rows = [(
+    active_learning_data = [(
              "GT Program",
              "Benchmark Info",
              "Semantics", 
@@ -40,6 +47,13 @@ def run_experiments(domain):
              "# Rounds",  
              "Time Per Round",
             )]
+    eval_data = [(
+        "Semantics",
+        "Question Selector",
+        "Eval Times",
+        "Num Evals"
+    )]
+
 
     # Our technique, baselines, and ablations
     test_settings = [
@@ -61,6 +75,10 @@ def run_experiments(domain):
 
     random.seed(123)
     for semantics, question_selection in test_settings:
+
+        constants.TIME_PER_EVAL = {}
+        constants.NUM_EVALS = {}
+
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
@@ -90,7 +108,7 @@ def run_experiments(domain):
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
             correct = active_learning.synth.interp.check_gt_equivalence(active_learning.gt_prog, output_progs[0], active_learning.input_space, skipped_inputs)  if not isinstance(output_progs, str) else output_progs
-            rows.append(
+            active_learning_data.append(
                 (
                     benchmark.gt_prog,
                     benchmark.dataset_name,
@@ -106,10 +124,23 @@ def run_experiments(domain):
                 )
             )
 
-        with open(f"./output/{domain.__name__}_results.csv", "w") as f:
+        eval_data.append((
+            semantics,
+            question_selection.__name__,
+            copy.deepcopy(constants.TIME_PER_EVAL),
+            copy.deepcopy(constants.NUM_EVALS),
+        ))
+
+        with open(f"./output/{domain.__name__}_active_learning_results.csv", "w") as f:
             writer = csv.writer(f)
-            for row in rows:
+            for row in active_learning_data:
                 writer.writerow(row)
+
+        with open(f"./output/{domain.__name__}_eval_results.csv", "w") as f:
+            writer = csv.writer(f)
+            for row in eval_data:
+                writer.writerow(row)
+
         s = io.StringIO()
         pr.disable()
         ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
@@ -131,7 +162,7 @@ def csv_to_dict(filename):
     return data_dict
 
 
-def get_table_data(domains):
+def get_experiment_results(domains):
     setting_to_data_overall = {}
     rows = [[
         "Domain",
@@ -142,9 +173,11 @@ def get_table_data(domains):
         "# Benchmarks Solved",
         "Avg. Time per Round of Interaction"
     ]]
+
+    # Create a table that has the results presented in tables 1, 2, 3 in the paper.
     for domain in domains:
         setting_to_data_per_domain = {}
-        data_dict = csv_to_dict(f"./output/{domain.__name__}_results.csv")
+        data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results.csv")
 
         for (semantics, question_selector, time_per_round, init_time, correct, num_initial_programs, num_final_programs) in zip(data_dict["Semantics"], data_dict["Question Selector"], data_dict["Time Per Round"], data_dict["Initial Synthesis Time"], data_dict["Correct?"], data_dict["Initial Program Space Size"], data_dict["Final Program Space Size"]):
             key = "{}_{}".format(semantics, question_selector)
@@ -172,7 +205,7 @@ def get_table_data(domains):
 
             setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
             setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
-            setting_to_data_overall[key]["num_final_progs"].append(int(num_initial_programs))
+            setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
             setting_to_data_overall[key]["correct"] += 1 if correct == "True" else 0
 
             for i, round_time in enumerate(time_per_round):
@@ -209,11 +242,47 @@ def get_table_data(domains):
             writer.writerow(row)
 
 
+    # Create the bar plot presented in Figure 22 in the paper.
+    if constants.TIME_EVALS:
+        for domain in domains:
+            data_dict = csv_to_dict(f"./output/{domain.__name__}_eval_results.csv")
+
+            domain_to_buckets = {
+                "MNISTActiveLearning" : [((1, 10), "(1, 10]"), ((11, 50), "(10, 50]"), ((51, 300), "(51, 300]")],
+                "ImageEditingActiveLearning" : [((1, 20), "(1, 20]"), ((21, 200), "(20, 200]"), ((201, 600), "(200, 600]")]
+            }
+
+            buckets = domain_to_buckets[domain.__name__]
+            plot_data = []
+            for semantics, question_selector, eval_times, num_evals in zip(data_dict["Semantics"], data_dict["Question Selector"], data_dict["Eval Times"], data_dict["Num Evals"]):
+
+                if question_selector != "SmartLabel":
+                    continue
+
+                eval_times = ast.literal_eval(eval_times)
+                num_evals = ast.literal_eval(num_evals)
+                for bucket, bucket_name in buckets:
+                    plot_data.append([semantics, bucket_name, sum([val * 1000 for key, val in eval_times.items() if key >= bucket[0] and key <= bucket[1]])/sum([val for key, val in num_evals.items() if key >= bucket[0] and key <= bucket[1]])])
+
+            # the sample dataframe from the OP
+            df = pd.DataFrame(plot_data, columns=['group', 'column', 'val'])
+
+            plt.figure(figsize=(5, 3))
+            plt.xlabel("Prediction Set Size")
+            plt.ylabel("Average Evaluation Time (ms)")
+            plt.title(domain.__name__)
+            plt.tight_layout()
+
+            # plot with seaborn barplot
+            sns.barplot(data=df, x='column', y='val', hue='group', edgecolor="black", palette='BuPu')
+
+            plt.legend(loc='upper left', fontsize=12)
+            plt.savefig(f"./output/{domain.__name__}_CCE_ablation.pdf")
 
 
 
 if __name__ == "__main__":
-    domains = [ImageEditActiveLearning, MNISTActiveLearning]
+    domains = [ MNISTActiveLearning, ImageEditActiveLearning]
     for domain in domains:
         run_experiments(domain)
-    get_table_data(domains)
+    get_experiment_results(domains)

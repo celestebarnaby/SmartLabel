@@ -1,5 +1,3 @@
-import random
-
 from question_selection.smart_label import SmartLabel
 
 
@@ -27,14 +25,8 @@ class SelectAbstract(SmartLabel):
         pruning_power_per_question = self.get_all_qs_pruning_power(program_space, input_space, labelling_qs, examples, skipped_inputs, partial_conf=True)
         pruning_power_per_question.sort()
         if len(pruning_power_per_question) == 0:
-            # Use backup question
-            options = sorted([i for i, label_q in enumerate(labelling_qs) if int(label_q.input_id) == int(self.backup_question_index)])
-            if len(options) == 0:
-                q_type = "input"
-                q_index = self.backup_question_index
-            else:
-                q_type = "label"
-                q_index = options[0]
+            # TODO: error handling
+            raise TypeError
         else:
             best_q = pruning_power_per_question[0]
             q_index = best_q.q_index

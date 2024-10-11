@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+import constants
+import time
 
+import copy
 
 class Interpreter(ABC):
     @abstractmethod
@@ -87,17 +90,17 @@ class Interpreter(ABC):
             True if gt_output is contained in the prediction set output by expr on inp, and False otherwise
         """
         # Perform forward abstract interpretation
-        self.forward_ai(expr, inp["conf"])
+        inp_conf_copy = inp["conf"].copy()
+        self.forward_ai(expr, inp_conf_copy)
         # If the goal output is not contained in the abstract value of the expression, return False
         if not self.gt_matches_abs_output(gt_output, expr.abs_value):
             return False
         constraints = {}
         # Perform backward abstract interpretation. If expr could not possibly output the goal, return False
-        inp_copy = inp.copy()
-        if not self.backward_ai(expr, inp_copy["conf"], gt_output, gt_output, constraints):
+        if not self.backward_ai(expr, inp_conf_copy, gt_output, gt_output, constraints):
             return False
-        # TODO: this is not really what we should be doing in MNIST...
-        inp_conf_list = inp_copy["conf_list"]
+        # TODO: should we instead get_all_universes here?
+        inp_conf_list = inp["conf_list"]
         # Compute the complete prediction set of the expression on the input.
         complete_pred_set = self.eval_consistent(expr, inp_conf_list, gt_output=self.represent_output(gt_output), constraints=constraints)
         # If the goal is contained in the prediction set, return True. Otherwise return False
@@ -201,11 +204,18 @@ class Interpreter(ABC):
         pass
 
     def get_check(self, semantics):
-        semantics_to_check = {
-            "CCE-NoAbs" : self.check_prog_cce_no_abs,
-            "CCE" : self.check_prog_cce,
-            "standard" : self.check_prog_standard
-        }
+        if constants.TIME_EVALS:
+            semantics_to_check = {
+                "CCE-NoAbs" : self.check_prog_cce_no_abs_timed,
+                "CCE" : self.check_prog_cce_timed,
+                "standard" : self.check_prog_standard
+            }
+        else:
+            semantics_to_check = {
+                "CCE-NoAbs" : self.check_prog_cce_no_abs,
+                "CCE" : self.check_prog_cce,
+                "standard" : self.check_prog_standard
+            }
         return semantics_to_check[semantics]
     
 
@@ -217,6 +227,24 @@ class Interpreter(ABC):
         for inp, output in examples:
             output_rep = self.represent_output(output)
             prog_output = self.eval_consistent(prog, inp["conf_list"], gt_output=output_rep)
+            if output_rep not in prog_output:
+                return False 
+        return True 
+    
+    def check_prog_cce_no_abs_timed(self, prog, examples):
+        '''
+        Same as above, except also measures how long each program evaluation takes. 
+        '''
+        for inp, output in examples:
+            output_rep = self.represent_output(output)
+            start_time = time.perf_counter()
+            prog_output = self.eval_consistent(prog, inp["conf_list"], gt_output=output_rep)
+            eval_time = time.perf_counter() - start_time
+            if len(inp["conf_list"]) not in constants.TIME_PER_EVAL:
+                constants.TIME_PER_EVAL[len(inp["conf_list"])] = 0
+                constants.NUM_EVALS[len(inp["conf_list"])] = 0
+            constants.TIME_PER_EVAL[len(inp["conf_list"])] += eval_time
+            constants.NUM_EVALS[len(inp["conf_list"])] += 1
             if output_rep not in prog_output:
                 return False 
         return True 
@@ -232,6 +260,24 @@ class Interpreter(ABC):
             if not result:
                 return False 
         return True
+    
+
+    def check_prog_cce_timed(self, prog, examples):
+        '''
+        Same as above, except also measures how long each program evaluation takes.
+        '''
+        for inp, output in examples:
+            start_time = time.perf_counter()
+            result = self.eval_cce(prog.duplicate(), inp, output)
+            eval_time = time.perf_counter() - start_time
+            if len(inp["conf_list"]) not in constants.TIME_PER_EVAL:
+                constants.TIME_PER_EVAL[len(inp["conf_list"])] = 0
+                constants.NUM_EVALS[len(inp["conf_list"])] = 0
+            constants.TIME_PER_EVAL[len(inp["conf_list"])] += eval_time
+            constants.NUM_EVALS[len(inp["conf_list"])] += 1
+            if not result:
+                return False 
+        return True    
 
 
     def check_prog_standard(self, prog, examples):

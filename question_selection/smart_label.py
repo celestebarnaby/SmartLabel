@@ -105,7 +105,7 @@ class SmartLabel(QuestionSelector):
         return optimal_q
     
 
-    def get_input_q_pruning_power(self, q, partial_conf, progs, img):
+    def get_input_q_pruning_power(self, q, partial_conf, progs, q_index):
         '''
         Compute the pruning power of an input question. 
         '''
@@ -127,9 +127,9 @@ class SmartLabel(QuestionSelector):
 
         # Sort answer frequencies. A question's pruning power is proportional to how many programs its WORST answer will prune. 
         answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
-        return PruningPowerInfo(answer_nums, img, "input", partial_conf)
+        return PruningPowerInfo(answer_nums, q_index, "input", partial_conf)
     
-
+    
     def get_labelling_q_pruning_power(self, inp, obj_id, key, progs, q_index, output, partial_conf):
         '''
         Compute the pruning power of a labelling question
@@ -149,13 +149,13 @@ class SmartLabel(QuestionSelector):
                 random.seed(123)
                 universes = random.sample(universes, num_samples)
             for prog in progs:
-                partial_conf_answers = self.interp.eval_consistent(prog, universes)
-                for partial_conf_answer in partial_conf_answers:
-                    if output is not None and output != partial_conf_answer:
+                input_q_answers = self.interp.eval_consistent(prog, universes)
+                for input_q_answer in input_q_answers:
+                    if output is not None and output != input_q_answer:
                         continue
-                    if (partial_conf_answer, label_q_answer) not in answer_to_freq:
-                        answer_to_freq[(partial_conf_answer, label_q_answer)] = 0
-                    answer_to_freq[(partial_conf_answer, label_q_answer)] += 1
+                    if (input_q_answer, label_q_answer) not in answer_to_freq:
+                        answer_to_freq[(input_q_answer, label_q_answer)] = 0
+                    answer_to_freq[(input_q_answer, label_q_answer)] += 1
         answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
         return PruningPowerInfo(answer_nums, q_index, "label", partial_conf)
 
@@ -219,35 +219,4 @@ class PruningPowerInfo:
             # If the questions have different types, the label question is greater
             return x.q_type == "label"
         # If the answer lists are different, compare and return the question with the better answer list
-        return more_pruning_power(x.answer_list, y.answer_list)
-
-
-def more_pruning_power(l1, l2):
-    """
-    Returns True if l1 has more pruning power than l2, and False otherwise.
-
-    Args:
-        l1 (List[int]): The first answer list
-        l2 (List[int]): The second answer list
-
-    The goal is to identify the question whose WORST answer will prune the MOST programs from the hypothesis space.
-    The answer list 
-    """
-    i = 0
-    while i < min(len(l1), len(l2)):
-
-        if l1[i] == 0:
-            return False
-        elif l2[i] == 0:
-            return True
-        elif l1[i] < l2[i]:
-            return True 
-        elif l1[i] > l2[i]:
-            return False 
-        i += 1
-    if i < len(l1):
-        return True 
-    else:
-        return False
-    
-
+        return x.answer_list[0] < y.answer_list[0]
