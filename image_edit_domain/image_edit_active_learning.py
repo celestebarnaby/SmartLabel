@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import time
 
 from constants import * 
 from active_learning import ActiveLearning, LabelQuestion
@@ -14,6 +15,7 @@ from image_edit_domain.image_edit_benchmarks import image_edit_benchmarks
 class ImageEditActiveLearning(ActiveLearning):
     def __init__(self, semantics, question_selection):
         super().__init__(semantics, question_selection)
+        self.dataset_to_program_space = {}
 
     def set_benchmarks(self):
         self.benchmarks = image_edit_benchmarks 
@@ -45,6 +47,28 @@ class ImageEditActiveLearning(ActiveLearning):
         self.labelling_qs = labelling_qs
         self.synth.set_object_list(self.input_space)
         self.gt_prog = benchmark.gt_prog
+        self.num_samples = IMAGE_EDIT_NUM_SAMPLES
+
+    def set_program_space(self, benchmark, i):
+        if benchmark.dataset_name in self.dataset_to_program_space:
+            complete_program_space = self.dataset_to_program_space[benchmark.dataset_name]
+        else:
+            complete_program_space = self.synth.synthesize([])
+            self.dataset_to_program_space[benchmark.dataset_name] = complete_program_space
+
+        # 2 benchmarks fail w this
+        # random.seed(123 + i)
+            
+        # all benchmarks pass w this 
+        random.seed(123)
+
+        program_space = random.sample(complete_program_space, min(len(complete_program_space), IMAGE_EDIT_INIT_PROG_SPACE_SIZE))
+        initial_synth_start_time = time.perf_counter()
+        program_space = self.synth.check_programs(program_space, [(self.input_space[q], a) for q, a in self.examples])
+        initial_synthesis_time = time.perf_counter() - initial_synth_start_time
+        program_space.append(benchmark.gt_prog)
+        self.program_space = [prog.duplicate() for prog in program_space]
+        return initial_synthesis_time
 
 
     def get_examples(self, gt_prog, all_images):
@@ -65,6 +89,26 @@ class ImageEditActiveLearning(ActiveLearning):
                 continue
             examples.append((inp, output)) 
         return examples
+    
+
+    def get_examples2(self, gt_prog, all_images):
+        examples = []
+        sorted_images = sorted(list(all_images.items()), key = lambda x : (len(x[1]["gt"]), x[0]))
+        # sorted_images = sorted(list(all_images.items()), key = lambda x : (len(x[1]["gt"]), x[0]), reverse=True)
+        # sorted_images = sorted(list(all_images.items()), key = lambda x : x)
+
+        for img_id, img in sorted_images:
+            if len(examples) >= NUM_INITIAL_EXAMPLES:
+                return examples 
+            if len(img["conf_list"]) > MAX_PRED_SET_SIZE:
+                continue
+            gt_output = self.interp.eval_standard(gt_prog, img["gt"])
+            key = "conf" if self.semantics in {"CCE", "CCE-NoAbs"} else self.semantics
+            output = self.get_pred_output(gt_output, img["gt"], img[key])
+            if output is None or len(output) == 0:
+                continue  
+            examples.append((img_id, output))  
+        return examples 
     
 
     def get_labelling_qs(self, input_qs):
@@ -100,7 +144,7 @@ class ImageEditActiveLearning(ActiveLearning):
         new_pred_output = self.get_pred_output(new_answer, self.input_space[new_question]["gt"], self.input_space[new_question][semantics_key])
         if new_pred_output is None:
             print("Skipping question")
-            labelling_qs = [(img, obj_id, key) for (img, obj_id, key) in labelling_qs if img != new_question]
+            self.labelling_qs[:] = [label_q for label_q in self.labelling_qs if label_q.input_id != new_question]
             # TODO: make sure this works
             skipped_inputs.add(new_question)
         else:

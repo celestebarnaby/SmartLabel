@@ -84,27 +84,26 @@ def run_experiments(domain):
         active_learning = domain(semantics, question_selection)
         for i, benchmark in enumerate(active_learning.benchmarks):
 
-            # Generate the input space, question space, and initial examples specific to the domain
-            active_learning.set_question_space(benchmark, i)
-
-            # Learn models for inputs (this is specific to the LearnSy baseline)
-            active_learning.question_selection.learn_models(active_learning.input_space, semantics, active_learning.synth)
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")
 
-            print("Performing initial synthesis...")
-            initial_synthesis_start_time = time.perf_counter()
-            program_space = active_learning.synth.synthesize([(active_learning.input_space[q], a) for q, a in active_learning.examples])
+            # Generate the input space, question space, and initial examples specific to the domain
+            active_learning.set_question_space(benchmark, i)
 
-            initial_synthesis_time = time.perf_counter() - initial_synthesis_start_time
+            print("Performing initial synthesis...")
+            initial_synthesis_time = active_learning.set_program_space(benchmark, i)
+
             print("Initial synthesis complete.")
-            initial_program_space_size = len(program_space)
+            initial_program_space_size = len(active_learning.program_space)
             active_learning_start_time = time.perf_counter()
+
+            # Learn models for inputs (this is specific to the LearnSy baseline)
+            active_learning.question_selection.learn_models(active_learning.input_space, semantics, active_learning.synth)
 
             # Timeout after 600 seconds
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(600)
-            output_progs, time_per_round, skipped_inputs = active_learning.run(benchmark, program_space)
+            output_progs, time_per_round, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
             correct = active_learning.synth.interp.check_gt_equivalence(active_learning.gt_prog, output_progs[0], active_learning.input_space, skipped_inputs)  if not isinstance(output_progs, str) else output_progs
@@ -201,12 +200,12 @@ def get_experiment_results(domains):
             setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
             setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
             setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
-            setting_to_data_per_domain[key]["correct"] += 1 if correct == "True" else 0 
+            setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
 
             setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
             setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
             setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
-            setting_to_data_overall[key]["correct"] += 1 if correct == "True" else 0
+            setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
 
             for i, round_time in enumerate(time_per_round):
                 if i == 0:
@@ -282,7 +281,7 @@ def get_experiment_results(domains):
 
 
 if __name__ == "__main__":
-    domains = [ MNISTActiveLearning, ImageEditActiveLearning]
+    domains = [ ImageEditActiveLearning, MNISTActiveLearning]
     for domain in domains:
         run_experiments(domain)
     get_experiment_results(domains)

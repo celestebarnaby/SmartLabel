@@ -1,5 +1,5 @@
 from question_selection.question_selection import QuestionSelector
-from question_selection.samplesy import SampleSy
+from question_selection.smart_label import SmartLabel
 import random
 
 
@@ -44,4 +44,4 @@ class SelectRandom(QuestionSelector):
     
 
     def distinguish(self, program_space, input_qs, examples, skipped_inputs):
-        return SampleSy(self.interp).distinguish(program_space, input_qs, examples, skipped_inputs)
+        return SmartLabel(self.interp).distinguish(program_space, input_qs, examples, skipped_inputs)

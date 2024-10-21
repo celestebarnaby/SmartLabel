@@ -507,6 +507,9 @@ def apply_fn_backwards(goal, children, inp):
 
 def curry_fn(args, inp, is_standard):
     if len(args) != 2:
+        print('curry?')
+        print(args)
+        print(len(args))
         raise Exception()
     f = args[0]
     x = args[1]

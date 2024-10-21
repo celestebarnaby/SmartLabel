@@ -1,5 +1,6 @@
 import heapq as hq
 import itertools
+import random
 
 from synthesis import Synthesizer
 from constants import *
@@ -27,11 +28,27 @@ class ImageEditSynthesizer(Synthesizer):
         # object must appear in at least a certain percent of images -- i.e. remove rare objects
         self.all_objects = [label for label, occs in sorted_labels_to_occs if occs >= max(len(input_space) * .05, 3)]
 
-    def synthesize(self, examples):
+
+    def check_programs(self, program_space, examples):
+        progs_matching_examples = []
+        check = self.interp.get_check(self.semantics)
+        for prog in program_space:
+            if check(prog, examples):
+                progs_matching_examples.append(prog)
+        return progs_matching_examples
+
+
+    def synthesize(self, examples, learnsy=False):
         '''
         Given a set of I/O examples, perform top-down enumeration up to a set AST size, and return all programs matching 
         the I/O examples
         '''
+        random.seed(123)
+
+        # TODO: ???
+        self.worklist = []
+        self.output_dict = {}
+
         output_per_example = [output for _, output in examples]
         self.output_dict[str(output_per_example)] = output_per_example
 
@@ -50,11 +67,13 @@ class ImageEditSynthesizer(Synthesizer):
         tree.var_nodes.append(0)
         hq.heappush(self.worklist, tree)
 
+        num_progs = 0
         while self.worklist:
+            num_progs += 1
             cur_tree = hq.heappop(self.worklist)
             prog = construct_prog_from_tree(cur_tree)
-            if get_ast_size(prog) > IMAGE_EDIT_AST_SIZE:
-                break 
+            if get_ast_size(prog) > (LEARNSY_IMAGE_EDIT_AST_SIZE if learnsy else IMAGE_EDIT_AST_SIZE):
+                break
 
             # A pruning technique for the image editing DSL that utilizes equivalence reduction
             # to prune programs that are equilvalent to a previously enumerated program
@@ -92,8 +111,12 @@ class ImageEditSynthesizer(Synthesizer):
                     for obj in self.all_objects 
                 ]
             else:
-                # TODO: error hadnling
+                # TODO: error handling
                 raise TypeError
+            
+            if not learnsy:
+                new_sub_exprs = random.sample(new_sub_exprs, min(len(new_sub_exprs), IMAGE_EDIT_NUM_SAMPLED_SUB_EXPRS))
+
             for (
                 sub_expr,
                 children,
