@@ -32,9 +32,6 @@ class MNISTActiveLearning(ActiveLearning):
         input_space = {}
         labelling_qs = []
 
-        wrongly_predicted_imgs = [img for img in imgs if img.get_pred() != img.gt]
-        correctly_predicted_imgs = [img for img in imgs if img.get_pred() == img.gt]
-
         # random.seed(123 + i)
 
 
@@ -51,19 +48,20 @@ class MNISTActiveLearning(ActiveLearning):
         # labelling_qs = qs['label_questions']
         # labelling_qs = [LabelQuestion(input_id, "img-list" if name == "list-img-int-conf" else "img", i) for (input_id, name, i) in labelling_qs]
 
+        # Current setup: same input space every time
         random.seed(124)  
         per_digit_correct = []
         while len(input_space) < NUM_INPUTS:
             cur_int_list = []
             for _ in range(LIST_LENGTH):
-                cur_int_list.append(get_int(correctly_predicted_imgs, wrongly_predicted_imgs))
+                cur_int_list.append(get_int(imgs))
 
                 # TODO: remove this stuff later
                 for item in cur_int_list:
                     for digit in item:
                         per_digit_correct.append(digit.gt == digit.get_pred())
 
-            additional_int = get_int(correctly_predicted_imgs, wrongly_predicted_imgs)
+            additional_int = get_int(imgs)
 
             for digit in additional_int:
                 per_digit_correct.append(digit.gt == digit.get_pred())
@@ -86,12 +84,15 @@ class MNISTActiveLearning(ActiveLearning):
         gt_prog = self.interp.parse(benchmark.gt_prog)
         self.input_space = input_space 
 
-
+        # Different examples for every benchmark
+        random.seed(123 + i)  
         self.examples = [(inp_id, self.interp.eval_standard(gt_prog, inp["gt"])) for inp_id, inp in random.sample(sorted(input_space.items()), NUM_INITIAL_EXAMPLES)] 
 
         print(f"Per digit accuracy: {len([item for item in per_digit_correct if item])/len(per_digit_correct)}")
         print(len(per_digit_correct))
         self.get_accuracy()
+        print(sorted([len(inp["conf_list"]) for inp in input_space.values()]))
+        print(np.mean(sorted([len(inp["conf_list"]) for inp in input_space.values()])))
 
         self.labelling_qs = labelling_qs
         self.gt_prog = gt_prog 

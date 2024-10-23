@@ -5,8 +5,8 @@ from benchmark import Benchmark
 mnist_benchmarks = [
         # Robert
         Benchmark(
-            "(length (filter (curry le 5) (map (curry plus (apply pred_int input-img)) (map_imgs pred_int input-list))))",
-            "Counts how many exam scores are still low (below 5) after adding x extra credit points."
+            "(length (filter (curry le 5) (map (curry plus 1) (map_imgs pred_int input-list))))",
+            "Counts how many exam scores are still low (below 5) after adding an extra credit point."
         ),
         Benchmark(
             "(fold max 0  (map (curry plus (apply pred_int input-img)) (filter (curry le 9) (map_imgs pred_int input-list))))",
@@ -17,8 +17,8 @@ mnist_benchmarks = [
             "For cheap products being sold at a store, calculates the total revenue from selling out these products after increasing their price by x dollars.",
         ),
         Benchmark(
-            "(length (filter (curry ge (apply pred_int input-img)) (filter (curry le 7) (map (curry mult 2)  (map_imgs pred_int input-list)))))",
-            "After doubling the amount every product in the inventory, among the products still with fewer than 9 units in stock, counts how many have more than x units in stock, where x is the required minimum."
+            "(length (filter (curry ge (apply pred_int input-img)) (map (curry mult 2)  (map_imgs pred_int input-list))))",
+            "After doubling the amount every product in the inventory, count how many have more than x units in stock, where x is the required minimum."
         ),
         Benchmark(
             "(fold max 0 (map (curry plus (apply pred_int input-img)) (filter (curry le 2)  (map_imgs pred_int input-list))))",
@@ -30,8 +30,8 @@ mnist_benchmarks = [
             "Sum of digits greater than x"
         ),
         Benchmark(
-            "(fold mult 1 (filter (curry le (apply pred_int input-img)) (map (curry mult (apply pred_int input-img)) (map_imgs pred_int input-list))))",
-            "Product of digits less than x after multiplying by x"
+            "(fold mult 1 (filter (curry le (apply pred_int input-img)) (map (curry mult 3) (map_imgs pred_int input-list))))",
+            "Product of digits less than x after multiplying by 3"
         ),
         # # TODO: this doesn't parse and also the description is wrong?
         # # 3. Numerator of the Second Central Moment
@@ -94,16 +94,16 @@ mnist_benchmarks = [
             "Finds the size of the largest class if every class size were to double."
         ),
         Benchmark(
-            "(fold max 0 (map (curry mult 2) (filter (curry le (apply pred_int input-img)) (map_imgs pred_int input-list))))",
-            "Finds the size of the largest class, if every class with less than x students were to double."
+            "(fold max 0 (map (curry mult 2) (filter (curry ge 5) (map_imgs pred_int input-list))))",
+            "Finds the size of the largest class, if every class with less than 5 students dissolved and every other class size doubled."
         ),
 
 
         # Zetten
 
         Benchmark(
-            "(length (map_imgs pred_int input-list))",
-            "Number of positive numbers in the list"
+            "(length (filter (curry ge 1) (map_imgs pred_int input-list)))",
+            "Number of positive, non-zero numbers in the list"
         ),
         Benchmark(
             "(fold mult 1 (map_imgs pred_int input-list))",
@@ -195,15 +195,15 @@ mnist_benchmarks = [
 
         Benchmark(
             "(length (filter (curry ge 9) (map_imgs pred_int input-list)))",
-            "Count the total expenses of large financial transactions that exceeds 9 dollars."
+            "Count the total expenses of large financial transactions that exceeds 9k dollars."
         ), 
         Benchmark(
             "(length (filter (curry ge 3) (map_imgs pred_int input-list)))",
             "In the pool of application of phd at University of Texas at Austin, count how many applicants got a gpa of at least 3."
         ), 
         Benchmark(
-            "(length (filter (curry le 7) (map (curry plus (apply pred_int input-img)) (map_imgs pred_int input-list))))",
-            "In automated logical reasoning class, count how many students still can not get C grade where the cutoff is 7 event after a bonus point of x."
+            "(length (filter (curry le (apply pred_int input-img)) (map (curry plus 2) (map_imgs pred_int input-list))))",
+            "In automated logical reasoning class, count how many students still can not get C grade where the cutoff is x event after a bonus point of 2."
         ), 
         Benchmark(
             "(length (filter (curry le (apply pred_int input-img)) (map (curry plus 1) (map_imgs pred_int input-list))))",
@@ -244,7 +244,7 @@ mnist_benchmarks = [
             "Given a bunch of purchases at a cash register, get the sum of the transactions over $2."
         ),
         Benchmark(
-            "(length (filter (curry ge 5) (map (curry plus (apply pred_int input-img)) (map_imgs pred_int input-list))))",
+            "(length (filter (curry ge 3) (map (curry plus 1) (map_imgs pred_int input-list))))",
             "In the pool of application of phd at University of Texas at Austin, count how many applicants got a gpa of at least 3."
         ), 
         Benchmark(

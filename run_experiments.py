@@ -58,11 +58,11 @@ def run_experiments(domain):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        ("standard", LearnSy),
+        # ("standard", LearnSy),
         # # SampleSy (baseline)
         ("standard", SampleSy),
         # # SmartLabel Abstract (ablation)
-        ("CCE", SelectAbstract),
+        # ("CCE", SelectAbstract),
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
@@ -70,7 +70,7 @@ def run_experiments(domain):
         # # QS-noUB (ablation)
         ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        ("CCE", SelectRandom),
+        # ("CCE", SelectRandom),
     ] 
 
     random.seed(123)
@@ -281,7 +281,7 @@ def get_experiment_results(domains):
 
 
 if __name__ == "__main__":
-    domains = [ ImageEditActiveLearning, MNISTActiveLearning]
+    domains = [ MNISTActiveLearning]
     for domain in domains:
         run_experiments(domain)
     get_experiment_results(domains)

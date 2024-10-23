@@ -74,16 +74,13 @@ def get_pred_set(img, w):
             pred_set.append(i)
     return pred_set
 
-def get_int(correct_preds, wrong_preds):
+def get_int(imgs):
     '''
     Creates an integer comprised of a predetermined number of MNIST digits.
     '''
     digit_list = []
     for _ in range(DIGITS_PER_ITEM):
-        if random.random() > MNIST_NOISE:
-            digit_list.append(random.choice(correct_preds))
-        else:
-            digit_list.append(random.choice(wrong_preds))
+        digit_list.append(random.choice(imgs))
     return digit_list
     
 

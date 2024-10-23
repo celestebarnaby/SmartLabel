@@ -35,23 +35,20 @@ PERTURB_AMT = .1
 GT_CONFIDENCE = 80
 PRED_CONFIDENCE = 70
 
-MNIST_DELTA = .0002
-
+MNIST_DELTA = .005
 # MNIST constants
 
 LIST_LENGTH = 3
-DIGITS_PER_ITEM = 2
+DIGITS_PER_ITEM = 1
 NUM_INPUTS = 100
 MNIST_NUM_SAMPLES= 200
-MNIST_NOISE = 0.03
 MNIST_AST_DEPTH = 4
 START_SYMBOL = "int"
 MAX_DIGIT = 10
 MNIST_NUM_PARTIAL_SAMPLES = 1
 
-MNIST_IMGS_DIR = "./mnist_domain/mnist_dataset/mnist.csv"
+MNIST_IMGS_DIR = "./mnist_domain/mnist_dataset/svhn.csv"
 MNIST_QUESTIONS_DIR = "./mnist_domain/mnist_dataset/questions.json"
-MNIST_NEW_QUESTIONS_DIR = "./mnist_domain/mnist_dataset/questions_NEW.json"
 
 # Used for measuring average evaluation time
 
