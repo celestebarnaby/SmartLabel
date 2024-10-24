@@ -73,7 +73,6 @@ def run_experiments(domain):
         # ("CCE", SelectRandom),
     ] 
 
-    random.seed(123)
     for semantics, question_selection in test_settings:
 
         constants.TIME_PER_EVAL = {}
@@ -83,6 +82,7 @@ def run_experiments(domain):
         pr.enable()
         active_learning = domain(semantics, question_selection)
         for i, benchmark in enumerate(active_learning.benchmarks):
+            random.seed(constants.SEED + i)
 
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")
@@ -281,7 +281,7 @@ def get_experiment_results(domains):
 
 
 if __name__ == "__main__":
-    domains = [ MNISTActiveLearning]
+    domains = [ ImageEditActiveLearning ]
     for domain in domains:
         run_experiments(domain)
     get_experiment_results(domains)

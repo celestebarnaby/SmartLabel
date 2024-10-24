@@ -265,7 +265,8 @@ def get_inverse2(f):
         def max_inverse(goal, inter):
             if goal[0] < inter[0]:
                 return None 
-            return (goal[0] if goal[0] > inter[0] else 0, goal[1])
+            # return (goal[0] if goal[0] > inter[0] else 0, goal[1])
+            return (0, goal[1])
         return max_inverse
     else:
         raise TypeError
@@ -282,7 +283,8 @@ def get_inverse(f):
         def max_inverse(tup):
             if tup[0] < arg_interval[0]:
                 return None 
-            return (tup[0] if tup[0] > arg_interval[0] else 0, tup[1])
+            # return (tup[0] if tup[0] > arg_interval[0] else 0, tup[1])
+            return (0, tup[1])
         return max_inverse
     else:
         raise TypeError
@@ -507,9 +509,6 @@ def apply_fn_backwards(goal, children, inp):
 
 def curry_fn(args, inp, is_standard):
     if len(args) != 2:
-        print('curry?')
-        print(args)
-        print(len(args))
         raise Exception()
     f = args[0]
     x = args[1]

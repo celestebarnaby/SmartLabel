@@ -43,9 +43,7 @@ class ImageEditSynthesizer(Synthesizer):
         Given a set of I/O examples, perform top-down enumeration up to a set AST size, and return all programs matching 
         the I/O examples
         '''
-        random.seed(123)
 
-        # TODO: ???
         self.worklist = []
         self.output_dict = {}
 

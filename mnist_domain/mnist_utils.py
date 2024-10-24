@@ -56,7 +56,7 @@ PRED_SET_THRESHOLD = get_w_alg()
 
 def get_conf(cur_int):
     ls = itertools.product(*[get_pred_set(digit_img, PRED_SET_THRESHOLD) for digit_img in cur_int])
-    return [sum([item * 10**i for (i, item) in enumerate(l)]) for l in ls]
+    return [int(sum([item * 10**i for (i, item) in enumerate(l)])) for l in ls]
 
 def get_gt(img_list):
     return sum([img.gt * 10**i for (i, img) in enumerate(img_list)])

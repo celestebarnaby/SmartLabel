@@ -27,73 +27,21 @@ class MNISTActiveLearning(ActiveLearning):
         self.interp = MNISTInterpreter()
 
     def set_question_space(self, benchmark, i):
-        imgs = load_mnist()
 
-        input_space = {}
+        # input_space = {}
+        gt_prog = self.interp.parse(benchmark.gt_prog)
         labelling_qs = []
 
-        # random.seed(123 + i)
-
-
-        # with open(MNIST_QUESTIONS_DIR, 'r') as f:
-        #     qs = json.load(f)
-
-        # self.transform_qs(qs)
-    
-        # with open(MNIST_NEW_QUESTIONS_DIR, 'r') as f:
-        #     qs = json.load(f)
-    
-        # input_space = qs['input_space']
-        # input_space = {int(key) : val for key, val in input_space.items()}
-        # labelling_qs = qs['label_questions']
-        # labelling_qs = [LabelQuestion(input_id, "img-list" if name == "list-img-int-conf" else "img", i) for (input_id, name, i) in labelling_qs]
-
-        # Current setup: same input space every time
-        random.seed(124)  
-        per_digit_correct = []
-        while len(input_space) < NUM_INPUTS:
-            cur_int_list = []
-            for _ in range(LIST_LENGTH):
-                cur_int_list.append(get_int(imgs))
-
-                # TODO: remove this stuff later
-                for item in cur_int_list:
-                    for digit in item:
-                        per_digit_correct.append(digit.gt == digit.get_pred())
-
-            additional_int = get_int(imgs)
-
-            for digit in additional_int:
-                per_digit_correct.append(digit.gt == digit.get_pred())
-
-            inp = {
-                "gt" : {"img-list": [get_gt(cur_int) for cur_int in cur_int_list], "img" : get_gt(additional_int)},
-                "standard" : {"img-list": [get_standard(cur_int) for cur_int in cur_int_list], "img" : get_standard(additional_int)},
-                "conf" : {"img-list": [get_conf(cur_int) for cur_int in cur_int_list], "img" : get_conf(additional_int)},
-                }
-            
-            inp["conf_list"] = self.interp.get_all_universes(inp["conf"])
-            inp_id = len(input_space)
-            input_space[inp_id] = inp
-
-            
+        with open(MNIST_QUESTIONS_DIR, 'r') as f:
+            input_space = json.load(f)
+        input_space = {int(key) : val for key, val in input_space.items()}
+        for inp_id, inp in input_space.items():
             labelling_qs += [LabelQuestion(inp_id, "img-list", i) for i in range(len(inp["conf"]["img-list"])) if len(inp["conf"]["img-list"][i]) > 1]
             if len(inp["conf"]["img"]) > 1:
                 labelling_qs.append(LabelQuestion(inp_id, "img", None))
-
-        gt_prog = self.interp.parse(benchmark.gt_prog)
-        self.input_space = input_space 
-
-        # Different examples for every benchmark
-        random.seed(123 + i)  
+ 
         self.examples = [(inp_id, self.interp.eval_standard(gt_prog, inp["gt"])) for inp_id, inp in random.sample(sorted(input_space.items()), NUM_INITIAL_EXAMPLES)] 
-
-        print(f"Per digit accuracy: {len([item for item in per_digit_correct if item])/len(per_digit_correct)}")
-        print(len(per_digit_correct))
-        self.get_accuracy()
-        print(sorted([len(inp["conf_list"]) for inp in input_space.values()]))
-        print(np.mean(sorted([len(inp["conf_list"]) for inp in input_space.values()])))
-
+        self.input_space = input_space
         self.labelling_qs = labelling_qs
         self.gt_prog = gt_prog 
         self.num_samples = MNIST_NUM_SAMPLES

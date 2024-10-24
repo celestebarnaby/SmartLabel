@@ -1,6 +1,7 @@
 from question_selection.question_selection import QuestionSelector
 from question_selection.smart_label import SmartLabel
 import random
+import constants
 
 
 class SelectRandom(QuestionSelector):
@@ -22,7 +23,7 @@ class SelectRandom(QuestionSelector):
         If the input question corresponding to the labelling question has also not been answer,
         we return that input question as well.
         """
-        random.seed(123)
+        random.seed(constants.SEED)
         current_qs = [item[0] for item in examples] + list(skipped_inputs)
         if len(labelling_qs) == 0:
             remaining_input_qs = [inp for inp in input_space if inp not in current_qs]

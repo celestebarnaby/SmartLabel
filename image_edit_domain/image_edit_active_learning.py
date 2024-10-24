@@ -56,11 +56,8 @@ class ImageEditActiveLearning(ActiveLearning):
             complete_program_space = self.synth.synthesize([])
             self.dataset_to_program_space[benchmark.dataset_name] = complete_program_space
 
-        # 2 benchmarks fail w this
-        # random.seed(123 + i)
-            
         # all benchmarks pass w this 
-        random.seed(123)
+        # random.seed(123)
 
         program_space = random.sample(complete_program_space, min(len(complete_program_space), IMAGE_EDIT_INIT_PROG_SPACE_SIZE))
         initial_synth_start_time = time.perf_counter()
@@ -77,7 +74,7 @@ class ImageEditActiveLearning(ActiveLearning):
         while len(examples) < NUM_INITIAL_EXAMPLES:
             if len(set(all_images.keys()) - used_imgs) == 0:
                 return examples
-            random.seed(123)
+            # random.seed(123)
             inp = random.choice(sorted(list(set(all_images.keys()) - used_imgs)))
             used_imgs.add(inp)
             if len(all_images[inp]["conf_list"]) > MAX_PRED_SET_SIZE:

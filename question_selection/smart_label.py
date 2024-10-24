@@ -1,5 +1,6 @@
 from question_selection.question_selection import QuestionSelector
 from constants import *
+import constants
 import random 
 
 class SmartLabel(QuestionSelector):
@@ -113,7 +114,7 @@ class SmartLabel(QuestionSelector):
         # Under BCE, sample just a subset of the universes of the input
         if partial_conf:
             num_samples = self.interp.get_num_partial_conf_samples(len(q["conf_list"]))
-            random.seed(123)
+            random.seed(constants.SEED)
             conf_list = random.sample(q["conf_list"], num_samples)
         # Otherwise, consider all universes
         else:
@@ -146,7 +147,7 @@ class SmartLabel(QuestionSelector):
             self.interp.reset_labelling_q(inp["conf"], obj_id, key, original_obj)
             if partial_conf:
                 num_samples = self.interp.get_num_partial_conf_samples(len(universes))
-                random.seed(123)
+                random.seed(constants.SEED)
                 universes = random.sample(universes, num_samples)
             for prog in progs:
                 input_q_answers = self.interp.eval_consistent(prog, universes)
@@ -211,8 +212,6 @@ class PruningPowerInfo:
             # If only ONE pruning power if partial, the complete pruning power is greater
             if x.partial_conf and not y.partial_conf:
                 return False
-            elif y.partial_conf and not x.partial_conf:
-                return True
             # If both questions also have the same type, defer to index
             if x.q_type == y.q_type:
                 return x.q_index < y.q_index 

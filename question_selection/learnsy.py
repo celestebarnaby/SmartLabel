@@ -1,5 +1,6 @@
 import itertools
 from constants import *
+import constants
 import random
 from image_edit_domain.image_edit_dsl import *
 from question_selection.question_selection import QuestionSelector
@@ -78,7 +79,7 @@ class LearnSy(QuestionSelector):
                     continue 
                 n1 = 0
                 n2 = 0
-                random.seed(123)
+                random.seed(constants.SEED)
                 samples1 = random.sample(progs_per_rule, min(NUM_LEARNSY_SAMPLES, len(progs_per_rule)))
                 samples2 = random.sample(progs_per_rule, min(NUM_LEARNSY_SAMPLES, len(progs_per_rule))) 
                 for prog1, prog2 in zip(samples1, samples2):
@@ -90,7 +91,7 @@ class LearnSy(QuestionSelector):
             for rule1, rule2 in list(itertools.combinations(list(grammar_rule_to_progs.keys()), 2)):
                 progs_per_rule1 = grammar_rule_to_progs[rule1]
                 progs_per_rule2 = grammar_rule_to_progs[rule2]
-                random.seed(123)
+                random.seed(constants.SEED)
                 samples1 = random.choices(progs_per_rule1, k=NUM_LEARNSY_SAMPLES)
                 samples2 = random.choices(progs_per_rule2, k=NUM_LEARNSY_SAMPLES)
                 n = 0
