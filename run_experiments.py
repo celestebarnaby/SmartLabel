@@ -63,9 +63,9 @@ def run_experiments(domain, seed_inc):
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
-        ("CCE-NoAbs", SmartLabel),
+        # ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
-        ("CCE", SmartLabelNoUB),
+        # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
         ("CCE", SelectRandom),
     ] 
@@ -85,8 +85,8 @@ def run_experiments(domain, seed_inc):
             avg_answer_space_per_question, avg_pred_set_size = active_learning.set_question_space(benchmark, i)
 
             print("Performing initial synthesis...")
-            initial_synthesis_time = active_learning.set_program_space(benchmark, i)
-
+            initial_synthesis_time = active_learning.set_program_space(benchmark, i, pr)
+            
             print("Initial synthesis complete.")
             initial_program_space_size = len(active_learning.program_space)
             active_learning_start_time = time.perf_counter()

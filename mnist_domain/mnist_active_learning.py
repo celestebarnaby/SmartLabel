@@ -67,7 +67,7 @@ class MNISTActiveLearning(ActiveLearning):
         print(f"Standard Semantics Accuracy: {len([entry for entry in entries_correct_standard if entry])/len(entries_correct_standard)}")
         print(f"Conformal Semantics Accuracy: {len([entry for entry in entries_correct_conf if entry])/len(entries_correct_conf)}")
 
-    def set_program_space(self, benchmark, i):
+    def set_program_space(self, benchmark, i, pr):
         initial_synth_start_time = time.perf_counter()
         self.program_space = self.synth.synthesize([(self.input_space[q], a) for q, a in self.examples])
         initial_synthesis_time = time.perf_counter() - initial_synth_start_time

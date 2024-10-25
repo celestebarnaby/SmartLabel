@@ -53,7 +53,8 @@ class ImageEditActiveLearning(ActiveLearning):
         avg_answer_space_per_question = np.mean([2 for _ in labelling_qs] + [len(inp["conf_list"]) for inp in input_space.values()])
         return avg_answer_space_per_question, avg_pred_set_sizes
 
-    def set_program_space(self, benchmark, i):
+    def set_program_space(self, benchmark, i, pr):
+        pr.disable()
         if benchmark.dataset_name in self.dataset_to_program_space:
             complete_program_space = self.dataset_to_program_space[benchmark.dataset_name]
         else:
