@@ -41,6 +41,10 @@ class ActiveLearning(ABC):
         '''
         time_per_round = []
         INDIST_INPS[:] = []
+
+        select_question_time = 0
+        refine_hs_time = 0
+        distinguish_time = 0
         try:
             rounds = 1
             skipped_inputs = set()
@@ -52,19 +56,23 @@ class ActiveLearning(ABC):
                 # Under our conformal guarantee, this happens with low probability.
                 if len(program_space) == 0:
                     print("Active learning failed.")
-                    return "FAIL", time_per_round, skipped_inputs
+                    return "FAIL", time_per_round, skipped_inputs, refine_hs_time, select_question_time, distinguish_time
                 print(f"Num programs in program space: {len(program_space)}")
                 print("Checking distinguishability!")
+                distinguish_start_time = time.perf_counter()
                 finished = self.question_selection.distinguish(program_space, self.input_space, self.examples, skipped_inputs)
+                distinguish_time += time.perf_counter() - distinguish_start_time
                 if finished:
                     print("All programs indistinguishable! Active learning finished!")
                     print("Synthesized prog: {}".format(program_space[0]))
-                    return program_space, time_per_round, skipped_inputs
+                    return program_space, time_per_round, skipped_inputs, refine_hs_time, select_question_time, distinguish_time
                 # We seed here so that we sample the same programs for every benchmark/ablation
                 random.seed(rounds)
                 # Sample a subset of the program space
                 samples = random.sample(program_space, min(self.num_samples, len(program_space)))
+                select_question_start_time = time.perf_counter()
                 new_input_question = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
+                select_question_time += time.perf_counter() - select_question_start_time
                 # This will happen if the question is a labelling question
                 if new_input_question is None:
                     pass 
@@ -74,11 +82,13 @@ class ActiveLearning(ABC):
                     new_answer = self.interp.eval_standard(self.gt_prog, self.input_space[new_input_question]["gt"]) 
                     self.add_example(new_input_question, new_answer, skipped_inputs)
                 # Update the program space with new I/O examples
+                refine_hs_start_time = time.perf_counter()
                 program_space = self.question_selection.prune_program_space(program_space, [(self.input_space[q], a) for q, a in self.examples], self.semantics)
+                refine_hs_time += time.perf_counter() - refine_hs_start_time
                 rounds += 1
                 time_per_round.append(time.perf_counter() - round_start_time)
         except TimeOutException:
-            return "TIMEOUT", time_per_round, skipped_inputs
+            return "TIMEOUT", time_per_round, skipped_inputs, refine_hs_time, select_question_time, distinguish_time
         
 
     def add_example(self, new_question, new_answer, skipped_inputs):

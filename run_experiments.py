@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns 
 import pandas as pd
 
+# Set the global font to Fira Sans
+plt.rcParams['font.family'] = 'Fira Sans'
+
 # Question selection
 from question_selection.learnsy import LearnSy
 from question_selection.samplesy import SampleSy
@@ -33,7 +36,7 @@ import statistics
 # Constants
 from constants import *
 
-def run_experiments(domain, seed_inc):
+def run_experiments(domain):
 
     active_learning_data = [(
              "GT Program",
@@ -51,6 +54,9 @@ def run_experiments(domain, seed_inc):
              "Avg. Prediction Set Size",
              "# Rounds",  
              "Time Per Round",
+             "RefineHS Time",
+             "Select Question Time",
+             "Distinguish Time"
             )]
 
 
@@ -76,7 +82,7 @@ def run_experiments(domain, seed_inc):
         pr.enable()
         active_learning = domain(semantics, question_selection)
         for i, benchmark in enumerate(active_learning.benchmarks):
-            random.seed(SEED + seed_inc + i)
+            random.seed(SEED + i)
 
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")
@@ -97,7 +103,7 @@ def run_experiments(domain, seed_inc):
             # Timeout after 600 seconds
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(600)
-            output_progs, time_per_round, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
+            output_progs, time_per_round, skipped_inputs, refine_hs_time, select_question_time, distinguish_time = active_learning.run(benchmark, active_learning.program_space)
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
             correct = active_learning.synth.interp.check_gt_equivalence(active_learning.gt_prog, output_progs[0], active_learning.input_space, skipped_inputs)  if not isinstance(output_progs, str) else output_progs
@@ -118,11 +124,14 @@ def run_experiments(domain, seed_inc):
                     avg_pred_set_size,
                     len(time_per_round),
                     time_per_round if len(time_per_round) < 5000 else [], # so csv is readable
+                    refine_hs_time + initial_synthesis_time,
+                    select_question_time,
+                    distinguish_time
                 )
             )
 
 
-        with open(f"./output/{domain.__name__}_active_learning_results_{seed_inc}.csv", "w") as f:
+        with open(f"./output/{domain.__name__}_active_learning_results_bottleneck.csv", "w") as f:
             writer = csv.writer(f)
             for row in active_learning_data:
                 writer.writerow(row)
@@ -152,7 +161,7 @@ def csv_to_dict(filename, task_type):
     return data_dict
 
 
-def get_experiment_results(domains, seed_inc):
+def get_experiment_results(domains):
     setting_to_data_overall = {}
     rows = [[
         "Domain",
@@ -165,14 +174,17 @@ def get_experiment_results(domains, seed_inc):
         "Avg. Answer Space Size per Question",
         "Avg. Prediction Set Size",
         "# Benchmarks Solved",
-        "Avg. Time per Round of Interaction"
+        "Avg. Time per Round of Interaction",
+        "Total Refine HS Time",
+        "Total Select Question Time",
+        "Total Distinguish Time"
     ]]
 
     # Create a table that has the results presented in tables 1, 2, 3 in the paper.
     for domain in domains:
         for task_type in [""] if domain.__name__ == "ImageEditActiveLearning" else [""]:
             setting_to_data_per_domain = {}
-            data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_{seed_inc}.csv", task_type)
+            data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_bottleneck.csv", task_type)
 
             for (
                 semantics, 
@@ -182,35 +194,32 @@ def get_experiment_results(domains, seed_inc):
                 correct, 
                 num_initial_programs, 
                 num_final_programs, 
-                input_space_size,
-                question_space_size,
-                answer_space_size,
-                avg_pred_set_size,
-                ) in zip(
-                    data_dict["Semantics"], 
-                    data_dict["Question Selector"], 
-                    data_dict["Time Per Round"], 
-                    data_dict["Initial Synthesis Time"], 
-                    data_dict["Correct?"], 
-                    data_dict["Initial Program Space Size"], 
-                    data_dict["Final Program Space Size"],
-                    data_dict["Input Space Size"],
-                    data_dict["Question Space Size"],
-                    data_dict["Avg. Answer Space Size per Question"],
-                    data_dict["Avg. Prediction Set Size"],
-                    ):
-                key = f"{semantics}_{question_selector}"
+                refine_hs_time,
+                select_question_time,
+                distinguish_time
+            ) in zip(
+            data_dict["Semantics"], 
+            data_dict["Question Selector"], 
+            data_dict["Time Per Round"], 
+            data_dict["Initial Synthesis Time"], 
+            data_dict["Correct?"], 
+            data_dict["Initial Program Space Size"], 
+            data_dict["Final Program Space Size"],
+            data_dict["RefineHS Time"],
+            data_dict["Select Question Time"],
+            data_dict["Distinguish Time"]
+            ):
+                key = "{}_{}".format(semantics, question_selector)
                 if key not in setting_to_data_per_domain:
                     setting_to_data_per_domain[key] = {
                         "runtimes" : [],
                         "num_rounds" : [],
                         "num_init_progs" : [],
                         "num_final_progs" : [],
-                        "input_space_sizes" : [],
-                        "question_space_sizes" : [],
-                        "avg_answer_space_sizes" : [],
-                        "avg_pred_set_sizes" : [],
-                        "correct" : 0 
+                        "correct" : 0 ,
+                        "refine_hs_times" : [],
+                        "select_question_times" : [],
+                        "distinguish_times" : []
                     } 
                 if key not in setting_to_data_overall:
                     setting_to_data_overall[key] = {
@@ -218,30 +227,27 @@ def get_experiment_results(domains, seed_inc):
                         "num_rounds" : [],
                         "num_init_progs" : [],
                         "num_final_progs" : [],
-                        "input_space_sizes" : [],
-                        "question_space_sizes" : [],
-                        "avg_answer_space_sizes" : [],
-                        "avg_pred_set_sizes" : [],
-                        "correct" : 0          
+                        "correct" : 0  ,
+                        "refine_hs_times" : [],
+                        "select_question_times" : [],
+                        "distinguish_times" : []        
                     } 
                 time_per_round = ast.literal_eval(time_per_round)
                 setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
                 setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
                 setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
-                setting_to_data_per_domain[key]["input_space_sizes"].append(int(input_space_size))
-                setting_to_data_per_domain[key]["question_space_sizes"].append(int(question_space_size))
-                setting_to_data_per_domain[key]["avg_answer_space_sizes"].append(float(answer_space_size))
-                setting_to_data_per_domain[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
                 setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
+                setting_to_data_per_domain[key]["refine_hs_times"].append(float(refine_hs_time))
+                setting_to_data_per_domain[key]["select_question_times"].append(float(select_question_time))
+                setting_to_data_per_domain[key]["distinguish_times"].append(float(distinguish_time))
 
                 setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
                 setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
                 setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
-                setting_to_data_overall[key]["input_space_sizes"].append(int(input_space_size))
-                setting_to_data_overall[key]["question_space_sizes"].append(int(question_space_size))
-                setting_to_data_overall[key]["avg_answer_space_sizes"].append(float(answer_space_size))
-                setting_to_data_overall[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
                 setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
+                setting_to_data_overall[key]["refine_hs_times"].append(float(refine_hs_time))
+                setting_to_data_overall[key]["select_question_times"].append(float(select_question_time))
+                setting_to_data_overall[key]["distinguish_times"].append(float(distinguish_time))
 
                 for i, round_time in enumerate(time_per_round):
                     if i == 0:
@@ -249,20 +255,19 @@ def get_experiment_results(domains, seed_inc):
                     setting_to_data_per_domain[key]["runtimes"].append(round_time)
                     setting_to_data_overall[key]["runtimes"].append(round_time)
 
-            for key, val in setting_to_data_per_domain.items():
-                rows.append([
-                    f"{domain.__name__}{task_type}",
-                    key,
-                    np.mean(val["num_rounds"]),
-                    np.mean(val["num_init_progs"]),
-                    np.mean(val["num_final_progs"]),
-                    np.mean(val["input_space_sizes"]),
-                    np.mean(val["question_space_sizes"]),
-                    np.mean(val["avg_answer_space_sizes"]),
-                    np.mean(val["avg_pred_set_sizes"]),
-                    val["correct"],
-                    np.mean(val["runtimes"])
-                ])
+        for key, val in setting_to_data_per_domain.items():
+            rows.append([
+                domain.__name__,
+                key,
+                np.mean(val["num_rounds"]),
+                np.mean(val["num_init_progs"]),
+                np.mean(val["num_final_progs"]),
+                val["correct"],
+                np.mean(val["runtimes"]),
+                sum(val["refine_hs_times"]),
+                sum(val["select_question_times"]),
+                sum(val["distinguish_times"]),
+            ])
 
     for key, val in setting_to_data_overall.items():
         rows.append([
@@ -276,52 +281,46 @@ def get_experiment_results(domains, seed_inc):
             np.mean(val["avg_answer_space_sizes"]),
             np.mean(val["avg_pred_set_sizes"]),
             val["correct"],
-            np.mean(val["runtimes"])
+            np.mean(val["runtimes"]),
+            sum(val["refine_hs_times"]),
+            sum(val["select_question_times"]),
+            sum(val["distinguish_times"]),
         ])
 
-    with open(f"./output/table_data_{seed_inc}.csv", "w") as f:
-        writer = csv.writer(f)
-        for row in rows:
-            writer.writerow(row)
+        total_runtime = sum(val["refine_hs_times"]) + sum(val["select_question_times"]) + sum(val["distinguish_times"])
+        # explode = (0.05, 0.05, 0.05)
+        # make donut plot
+        labels = ["Refine HS", "Distinguish", "Select Question"]
+        sizes = [sum(val["refine_hs_times"])/total_runtime, sum(val["distinguish_times"])/total_runtime, sum(val["select_question_times"])/total_runtime, ]
+        colors = ['#fc8d62', '#8da0cb', '#e78ac3']
 
-def get_combined_table():
-    overall_data_dict = {}
-    keys = [
-        "Domain",
-        "Test Setting",
-        "Avg. # Rounds of Interaction",
-        "Avg. # Initial Programs",
-        "Avg. # Final Programs",
-        "Avg. Input Space Size",
-        "Avg. Question Space Size",
-        "Avg. Answer Space Size per Question",
-        "Avg. Prediction Set Size",
-        "# Benchmarks Solved",
-        "Avg. Time per Round of Interaction"
-    ]
-    for i in range(NUM_SEEDS):
-        data_dict = csv_to_dict(f"./output/table_data_{i}.csv", "")
-        for key in keys:
-            if key in {"Domain", "Test Setting"}:
-                overall_data_dict[key] = data_dict[key] 
-                continue
-            if key not in overall_data_dict:
-                overall_data_dict[key] = [[float(item)] for item in data_dict[key]]
-            else:
-                overall_data_dict[key] = [item1 + [float(item2)] for item1, item2 in zip(overall_data_dict[key], data_dict[key])]
-    rows = [keys]
-    rows += [[overall_data_dict[key][i] if key in {"Domain", "Test Setting"} else (float(np.mean(overall_data_dict[key][i])), statistics.stdev(overall_data_dict[key][i])) for key in keys] for i in range(len(overall_data_dict["Domain"]))]
+        # Create the donut plot
+        fig, ax = plt.subplots(figsize=(6, 6))
+        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'white'}, pctdistance=0.85)
 
-    with open(f"./output/overall_table_data.csv", "w") as f:
+        for text in texts:
+            text.set_fontsize(11)
+
+        # Add a central circle for the 'donut' effect
+        centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+        fig.gca().add_artist(centre_circle)
+
+        # Styling
+        plt.title('Active Learning Runtime by Subprocess')
+        ax.axis('equal')  # Equal aspect ratio ensures the chart is circular
+
+        plt.savefig('./output/bottleneck.pdf', format='pdf', dpi=300, bbox_inches='tight')
+
+
+
+    with open(f"./output/table_data.csv", "w") as f:
         writer = csv.writer(f)
         for row in rows:
             writer.writerow(row)
 
 
 if __name__ == "__main__":
-    for i in range(NUM_SEEDS):
-        domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
-        # for domain in domains:
-            # run_experiments(domain, i)
-        # get_experiment_results(domains, i)
-    get_combined_table()
+    domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
+    for domain in domains:
+        run_experiments(domain)
+    get_experiment_results(domains)
