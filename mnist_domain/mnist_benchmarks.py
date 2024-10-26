@@ -194,8 +194,8 @@ mnist_benchmarks = [
     # Tony 
 
         Benchmark(
-            "(length (filter (curry ge 9) (map_imgs pred_int input-list)))",
-            "Count the total expenses of large financial transactions that exceeds 9k dollars."
+            "(length (filter (curry ge 5) (map_imgs pred_int input-list)))",
+            "Count the total number of donations that exceed 5 dollars."
         ), 
         Benchmark(
             "(length (filter (curry ge 3) (map_imgs pred_int input-list)))",
@@ -203,7 +203,7 @@ mnist_benchmarks = [
         ), 
         Benchmark(
             "(length (filter (curry le (apply pred_int input-img)) (map (curry plus 2) (map_imgs pred_int input-list))))",
-            "In automated logical reasoning class, count how many students still can not get C grade where the cutoff is x event after a bonus point of 2."
+            "In automated logical reasoning class, count how many students still can not get C grade where the cutoff is x even after a bonus point of 2."
         ), 
         Benchmark(
             "(length (filter (curry le (apply pred_int input-img)) (map (curry plus 1) (map_imgs pred_int input-list))))",

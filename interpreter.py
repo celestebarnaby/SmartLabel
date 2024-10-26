@@ -1,8 +1,4 @@
 from abc import ABC, abstractmethod
-import constants
-import time
-
-import copy
 
 class Interpreter(ABC):
     @abstractmethod
@@ -204,18 +200,11 @@ class Interpreter(ABC):
         pass
 
     def get_check(self, semantics):
-        if constants.TIME_EVALS:
-            semantics_to_check = {
-                "CCE-NoAbs" : self.check_prog_cce_no_abs_timed,
-                "CCE" : self.check_prog_cce_timed,
-                "standard" : self.check_prog_standard
-            }
-        else:
-            semantics_to_check = {
-                "CCE-NoAbs" : self.check_prog_cce_no_abs,
-                "CCE" : self.check_prog_cce,
-                "standard" : self.check_prog_standard
-            }
+        semantics_to_check = {
+            "CCE-NoAbs" : self.check_prog_cce_no_abs,
+            "CCE" : self.check_prog_cce,
+            "standard" : self.check_prog_standard
+        }
         return semantics_to_check[semantics]
     
 
@@ -227,24 +216,6 @@ class Interpreter(ABC):
         for inp, output in examples:
             output_rep = self.represent_output(output)
             prog_output = self.eval_consistent(prog, inp["conf_list"], gt_output=output_rep)
-            if output_rep not in prog_output:
-                return False 
-        return True 
-    
-    def check_prog_cce_no_abs_timed(self, prog, examples):
-        '''
-        Same as above, except also measures how long each program evaluation takes. 
-        '''
-        for inp, output in examples:
-            output_rep = self.represent_output(output)
-            start_time = time.perf_counter()
-            prog_output = self.eval_consistent(prog, inp["conf_list"], gt_output=output_rep)
-            eval_time = time.perf_counter() - start_time
-            if len(inp["conf_list"]) not in constants.TIME_PER_EVAL:
-                constants.TIME_PER_EVAL[len(inp["conf_list"])] = 0
-                constants.NUM_EVALS[len(inp["conf_list"])] = 0
-            constants.TIME_PER_EVAL[len(inp["conf_list"])] += eval_time
-            constants.NUM_EVALS[len(inp["conf_list"])] += 1
             if output_rep not in prog_output:
                 return False 
         return True 
@@ -260,24 +231,6 @@ class Interpreter(ABC):
             if not result:
                 return False 
         return True
-    
-
-    def check_prog_cce_timed(self, prog, examples):
-        '''
-        Same as above, except also measures how long each program evaluation takes.
-        '''
-        for inp, output in examples:
-            start_time = time.perf_counter()
-            result = self.eval_cce(prog.duplicate(), inp, output)
-            eval_time = time.perf_counter() - start_time
-            if len(inp["conf_list"]) not in constants.TIME_PER_EVAL:
-                constants.TIME_PER_EVAL[len(inp["conf_list"])] = 0
-                constants.NUM_EVALS[len(inp["conf_list"])] = 0
-            constants.TIME_PER_EVAL[len(inp["conf_list"])] += eval_time
-            constants.NUM_EVALS[len(inp["conf_list"])] += 1
-            if not result:
-                return False 
-        return True    
 
 
     def check_prog_standard(self, prog, examples):

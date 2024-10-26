@@ -1,5 +1,6 @@
 import random
 import time
+import numpy as np
 
 from constants import *
 
@@ -35,16 +36,22 @@ class MNISTActiveLearning(ActiveLearning):
         with open(MNIST_QUESTIONS_DIR, 'r') as f:
             input_space = json.load(f)
         input_space = {int(key) : val for key, val in input_space.items()}
+        pred_set_sizes = []
         for inp_id, inp in input_space.items():
-            labelling_qs += [LabelQuestion(inp_id, "img-list", i) for i in range(len(inp["conf"]["img-list"])) if len(inp["conf"]["img-list"][i]) > 1]
+            labelling_qs += [LabelQuestion(inp_id, "img-list", i) for i in range(len(inp["conf"]["img-list"]))]
+            pred_set_sizes += [len(inp["conf"]["img-list"][i]) for i in range(len(inp["conf"]["img-list"]))]
             if len(inp["conf"]["img"]) > 1:
                 labelling_qs.append(LabelQuestion(inp_id, "img", None))
+                pred_set_sizes.append(len(inp["conf"]["img"]))
  
         self.examples = [(inp_id, self.interp.eval_standard(gt_prog, inp["gt"])) for inp_id, inp in random.sample(sorted(input_space.items()), NUM_INITIAL_EXAMPLES)] 
         self.input_space = input_space
         self.labelling_qs = labelling_qs
         self.gt_prog = gt_prog 
         self.num_samples = MNIST_NUM_SAMPLES
+        avg_pred_set_size = np.mean(pred_set_sizes)
+        avg_answer_space_per_question = np.mean([len(inp["conf_list"]) for inp in input_space.values()] + pred_set_sizes)
+        return avg_answer_space_per_question, avg_pred_set_size
 
 
     def get_accuracy(self):

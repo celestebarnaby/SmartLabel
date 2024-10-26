@@ -50,10 +50,4 @@ MNIST_NUM_PARTIAL_SAMPLES = 1
 MNIST_IMGS_DIR = "./mnist_domain/mnist_dataset/svhn.csv"
 MNIST_QUESTIONS_DIR = "./mnist_domain/input_space.json"
 
-# Used for measuring average evaluation time
-
-TIME_EVALS = False
-TIME_PER_EVAL = {}
-NUM_EVALS = {}
-
 SEED = 123

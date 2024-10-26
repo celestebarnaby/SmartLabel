@@ -2,6 +2,7 @@ import os
 import json
 import random
 import time
+import numpy as np
 
 from constants import * 
 from active_learning import ActiveLearning, LabelQuestion
@@ -41,13 +42,15 @@ class ImageEditActiveLearning(ActiveLearning):
         examples = self.get_examples(benchmark.gt_prog, all_images)
         for inp, _ in examples:
             input_space[inp] = all_images[inp]
-        labelling_qs = self.get_labelling_qs(input_space)
+        labelling_qs, avg_pred_set_sizes = self.get_labelling_qs(input_space)
         self.input_space = input_space 
         self.examples = examples 
         self.labelling_qs = labelling_qs
         self.synth.set_object_list(self.input_space)
         self.gt_prog = benchmark.gt_prog
         self.num_samples = IMAGE_EDIT_NUM_SAMPLES
+        avg_answer_space_per_question = np.mean([2 for _ in labelling_qs] + [len(inp["conf_list"]) for inp in input_space.values()])
+        return avg_answer_space_per_question, avg_pred_set_sizes
 
     def set_program_space(self, benchmark, i):
         if benchmark.dataset_name in self.dataset_to_program_space:
@@ -55,10 +58,6 @@ class ImageEditActiveLearning(ActiveLearning):
         else:
             complete_program_space = self.synth.synthesize([])
             self.dataset_to_program_space[benchmark.dataset_name] = complete_program_space
-
-        # all benchmarks pass w this 
-        # random.seed(123)
-
         program_space = random.sample(complete_program_space, min(len(complete_program_space), IMAGE_EDIT_INIT_PROG_SPACE_SIZE))
         initial_synth_start_time = time.perf_counter()
         program_space = self.synth.check_programs(program_space, [(self.input_space[q], a) for q, a in self.examples])
@@ -74,7 +73,6 @@ class ImageEditActiveLearning(ActiveLearning):
         while len(examples) < NUM_INITIAL_EXAMPLES:
             if len(set(all_images.keys()) - used_imgs) == 0:
                 return examples
-            # random.seed(123)
             inp = random.choice(sorted(list(set(all_images.keys()) - used_imgs)))
             used_imgs.add(inp)
             if len(all_images[inp]["conf_list"]) > MAX_PRED_SET_SIZE:
@@ -110,14 +108,21 @@ class ImageEditActiveLearning(ActiveLearning):
 
     def get_labelling_qs(self, input_qs):
         label_qs = []
+        pred_set_sizes = []
         for img, abs_img in input_qs.items():
             for obj_id, obj in abs_img["conf"].items():
                 if not obj["Flag"]:
                     label_qs.append(LabelQuestion(img, obj_id, "Flag"))
+                    pred_set_sizes.append(2)
+                else:
+                    pred_set_sizes.append(1)
                 for attr in ATTRIBUTES: 
                     if attr in obj and len(obj[attr]) == 2:
                         label_qs.append(LabelQuestion(img, obj_id, attr))
-        return label_qs
+                        pred_set_sizes.append(2)
+                    else:
+                        pred_set_sizes.append(1)
+        return label_qs, np.mean(pred_set_sizes)
 
 
     # During active learning, the user is presented with an image and asked to annotate the objects
