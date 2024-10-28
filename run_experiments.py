@@ -10,6 +10,9 @@ import seaborn as sns
 import pandas as pd
 import json
 from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
+
+plt.rcParams['font.family'] = 'Fira Sans'
 
 # Question selection
 from question_selection.learnsy import LearnSy
@@ -500,30 +503,47 @@ def make_scalability_experiment_plot(domain, deltas):
         first_threshold = False
 
 
+    plt.figure(figsize=(5, 3)) 
+    
     x_axis = list(pred_set_size_to_avg_runtime.keys())
-
-
 
     # Fit linear model
     linear_coeffs = np.polyfit(x_axis, [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis], 1)
     linear_fit = np.poly1d(linear_coeffs)
+    x_vals = np.linspace(min(x_axis), max(x_axis), 500)
+    plt.plot(x_vals, linear_fit(x_vals), color='cornflowerblue', alpha=.5)
+
+
+    # Actual y values from your data
+    y_actual = [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis]
+
+    # Predicted y values using the fitted line
+    y_pred = linear_fit(x_axis)
+
+    # Calculate R^2 score
+    r2 = r2_score(y_actual, y_pred)
+    print(f"Linear R^2: {r2}")
 
     # fit exponential model
     def exp_func(x, a, b):
         return a * np.exp(b * x)
-    
 
-    print(len(x_axis))
-    print(len([pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis]))
     params, params_covariance = curve_fit(exp_func, x_axis, [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis])
+   
     # Plot the fitted exponential curve
     x_fit = np.linspace(min(x_axis), max(x_axis), 500)
     y_fit = exp_func(x_fit, params[0], params[1])
-    # plt.plot(x_fit, y_fit, color='mediumpurple', alpha=.5)
+    plt.plot(x_fit, y_fit, color='mediumpurple', alpha=.5)
+    # Calculate R^2 score
+    exp_y_actual = [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis]
+    x_axis = np.array(x_axis)
+    exp_y_pred = exp_func(x_axis, params[0], params[1])
+    print(len(exp_y_actual))
+    print(len(exp_y_pred))
+    r2_exp = r2_score(exp_y_actual, exp_y_pred)
+    print(f"Exponential model R^2: {r2_exp}")
 
     # Create scatter plot
-    x_vals = np.linspace(min(x_axis), max(x_axis), 500)
-    plt.plot(x_vals, linear_fit(x_vals), color='cornflowerblue', alpha=.5)
     plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis], color='cornflowerblue', label='SmartLabel')
     # plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["conf_minimax_partial_conf"] for item in x_axis], color='orange', label='CCE-NoAbs')
     # plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["bidirect_minimax_conf"] for item in x_axis], color='mediumseagreen', label='QS-NoUB')
@@ -533,14 +553,16 @@ def make_scalability_experiment_plot(domain, deltas):
 
     # Add labels and title
     plt.xlabel('Avg. Prediction Set Size')
-    plt.ylabel('Avg. User Interaction Time per Round (s)')
+    plt.ylabel('Avg. User Interaction Time (s)')
     # plt.title('')
 
     # Add a legend
     plt.legend()
 
+
+    plt.tight_layout()
     # Display the plot
-    plt.savefig('./output/plt.png', dpi=300)
+    plt.savefig('./output/scalability_plot.pdf', dpi=300)
 
 
 
@@ -551,13 +573,14 @@ if __name__ == "__main__":
         .00475,
         .0045,
         .00425,
-        .004
+        .004,
+        .00375,
     ]
-    for delta in deltas:
-        interp = MNISTInterpreter()
-        input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+    # for delta in deltas:
+        # interp = MNISTInterpreter()
+        # input_questions = get_questions_from_img_lists(img_lists, interp, delta)
 
-        domains = [ MNISTActiveLearning ]
+        # domains = [ MNISTActiveLearning ]
         # for domain in domains:
             # run_experiments(domain, input_questions, delta)
         # get_experiment_results(domains)
