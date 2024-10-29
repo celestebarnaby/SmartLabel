@@ -50,4 +50,4 @@ MNIST_NUM_PARTIAL_SAMPLES = 1
 MNIST_IMGS_DIR = "./mnist_domain/mnist_dataset/svhn.csv"
 MNIST_QUESTIONS_DIR = "./mnist_domain/input_space.json"
 
-SEED = 123
+SEED = 100

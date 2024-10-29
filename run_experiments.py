@@ -12,7 +12,6 @@ import pandas as pd
 # Question selection
 from question_selection.learnsy import LearnSy
 from question_selection.samplesy import SampleSy
-from question_selection.select_abstract import SelectAbstract
 from question_selection.select_random import SelectRandom
 from question_selection.smart_label import SmartLabel
 from question_selection.smart_label_no_upper_bound import SmartLabelNoUB
@@ -30,7 +29,7 @@ import pstats
 import cProfile
 
 # Constants
-import constants
+from constants import *
 
 def run_experiments(domain, seed_inc):
 
@@ -56,31 +55,26 @@ def run_experiments(domain, seed_inc):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        # ("standard", LearnSy),
+        ("standard", LearnSy),
         # # SampleSy (baseline)
-        # ("standard", SampleSy),
-        # # SmartLabel Abstract (ablation)
-        # ("CCE", SelectAbstract),
+        ("standard", SampleSy),
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
-        # ("CCE-NoAbs", SmartLabel),
+        ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
-        # ("CCE", SmartLabelNoUB),
+        ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        # ("CCE", SelectRandom),
+        ("CCE", SelectRandom),
     ] 
 
     for semantics, question_selection in test_settings:
-
-        constants.TIME_PER_EVAL = {}
-        constants.NUM_EVALS = {}
 
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
         for i, benchmark in enumerate(active_learning.benchmarks):
-            random.seed(constants.SEED + seed_inc + i)
+            random.seed(SEED + seed_inc + i)
 
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")
@@ -287,7 +281,7 @@ def get_experiment_results(domains, seed_inc):
 
 if __name__ == "__main__":
     for i in range(5):
-        domains = [MNISTActiveLearning]
+        domains = [MNISTActiveLearning, ImageEditActiveLearning]
         for domain in domains:
             run_experiments(domain, i)
         get_experiment_results(domains, i)
