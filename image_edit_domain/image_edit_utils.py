@@ -3,12 +3,19 @@ import copy
 from constants import *
 
 def get_attributes(output_over_per_example, output_under_per_example):
-    return [
+    attrs = [
         (IsSmiling(), [], [], [], 0),
         (EyesOpen(), [], [], [], 0),
         (MouthOpen(), [], [], [], 0),
         (IsObject(None), ["obj"], [output_over_per_example], [output_under_per_example], 0),
     ]
+    # if dataset == "receipts":
+    #     attrs += [
+    #         (IsPrice(), [], [], [], 0),
+    #         (IsPhoneNumber(), [], [], [], 0),
+    #         (MatchesWord(None), ["word"], [output_over_per_example], [output_under_per_example], 0),
+    #     ]
+    return attrs
 
 def get_expressions(
     parent_expr: Expression, output_over_per_example, output_under_per_example, examples, semantics

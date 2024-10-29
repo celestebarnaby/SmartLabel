@@ -97,7 +97,7 @@ class ImageEditSynthesizer(Synthesizer):
                     self.output_dict[hole.output_over],
                     self.output_dict[hole.output_under],
                     examples,
-                    self.semantics
+                    self.semantics,
                 )
             elif node_type == "attr":
                 new_sub_exprs = get_attributes(

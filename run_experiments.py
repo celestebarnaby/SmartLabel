@@ -27,6 +27,7 @@ from utils import handler
 import io
 import pstats
 import cProfile
+import statistics
 
 # Constants
 from constants import *
@@ -138,6 +139,7 @@ def csv_to_dict(filename):
     with open(filename, mode='r') as file:
         reader = csv.reader(file)
         keys = next(reader)  # Read the first row as keys
+        print(filename)
         for row in reader:
             for key, value in zip(keys, row):
                 if key not in data_dict:
@@ -277,11 +279,44 @@ def get_experiment_results(domains, seed_inc):
         for row in rows:
             writer.writerow(row)
 
+def get_combined_table():
+    overall_data_dict = {}
+    keys = [
+        "Domain",
+        "Test Setting",
+        "Avg. # Rounds of Interaction",
+        "Avg. # Initial Programs",
+        "Avg. # Final Programs",
+        "Avg. Input Space Size",
+        "Avg. Question Space Size",
+        "Avg. Answer Space Size per Question",
+        "Avg. Prediction Set Size",
+        "# Benchmarks Solved",
+        "Avg. Time per Round of Interaction"
+    ]
+    for i in range(NUM_SEEDS):
+        data_dict = csv_to_dict(f"./output/table_data_{i}.csv")
+        for key in keys:
+            if key in {"Domain", "Test Setting"}:
+                overall_data_dict[key] = data_dict[key] 
+                continue
+            if key not in overall_data_dict:
+                overall_data_dict[key] = [[float(item)] for item in data_dict[key]]
+            else:
+                overall_data_dict[key] = [item1 + [float(item2)] for item1, item2 in zip(overall_data_dict[key], data_dict[key])]
+    rows = [keys]
+    rows += [[overall_data_dict[key][i] if key in {"Domain", "Test Setting"} else (float(np.mean(overall_data_dict[key][i])), statistics.stdev(overall_data_dict[key][i])) for key in keys] for i in range(len(overall_data_dict["Domain"]))]
+
+    with open(f"./output/overall_table_data.csv", "w") as f:
+        writer = csv.writer(f)
+        for row in rows:
+            writer.writerow(row)
 
 
 if __name__ == "__main__":
-    for i in range(5):
+    for i in range(NUM_SEEDS):
         domains = [MNISTActiveLearning, ImageEditActiveLearning]
         for domain in domains:
             run_experiments(domain, i)
         get_experiment_results(domains, i)
+    get_combined_table()

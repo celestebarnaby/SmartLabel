@@ -123,6 +123,45 @@ class IsSmiling(Attribute):
         return type(self).__name__
 
 
+class MatchesWord(Attribute):
+    def __init__(self, word: str, val=None, output_under=None, output_over=None):
+        super().__init__(val, output_under, output_over)
+        self.word = word
+
+    def __str__(self):
+        return "MatchesWord(" + str(self.word) + ")"
+
+    def __eq__(self, other):
+        if isinstance(other, MatchesWord):
+            return self.word == other.word
+        return False
+
+    def get_grammar_rule(self):
+        return type(self).__name__
+
+
+class IsPhoneNumber(Attribute):
+    def duplicate(self):
+        return IsPhoneNumber(self.val)
+
+    def __str__(self):
+        return type(self).__name__
+    
+    def get_grammar_rule(self):
+        return type(self).__name__
+
+
+class IsPrice(Attribute):
+    def duplicate(self):
+        return IsPrice(self.val)
+
+    def __str__(self):
+        return type(self).__name__
+    
+    def get_grammar_rule(self):
+        return type(self).__name__
+
+
 class EyesOpen(Attribute):
     def duplicate(self):
         return EyesOpen()

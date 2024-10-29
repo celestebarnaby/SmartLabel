@@ -23,6 +23,8 @@ ATTRIBUTES = [
     "EyesOpen",
     "Smile",
     "MouthOpen",
+    # "Price",
+    # "PhoneNumber"
 ]
 MIN_IOU = .5
 MIN_SAMPLES = 3
@@ -51,3 +53,4 @@ MNIST_IMGS_DIR = "./mnist_domain/mnist_dataset/svhn.csv"
 MNIST_QUESTIONS_DIR = "./mnist_domain/input_space.json"
 
 SEED = 100
+NUM_SEEDS = 5

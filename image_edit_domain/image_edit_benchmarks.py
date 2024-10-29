@@ -216,20 +216,94 @@ image_edit_benchmarks = benchmarks = [
     Benchmark(
         Map(IsObject("Guitar"), IsObject("Face"), GetAbove()),
         "People playing guitar",
-        "festival",
+        "guitars",
     ),
     Benchmark(
         Union([IsObject("Guitar"), Map(IsObject("Guitar"), IsObject("Face"), GetAbove())]),
         "Guitars and people playing guitar",
-        "festival",
+        "guitars",
     ),
     Benchmark(
         Intersection(
             [IsObject("Face"), Complement(Map(IsObject("Guitar"), IsObject("Face"), GetAbove()))]
         ),
         "Faces of people not playing guitar",
-        "festival",
+        "guitars",
     ),
+
+    # # RECEIPTS BENCHMARKS!
+    # Benchmark(
+    #     Map(MatchesWord("TOTAL"), IsObject("text"), GetRight()),
+    #     'Text to the right of the word "TOTAL"',
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Map(Map(MatchesWord("TOTAL"), IsPrice(), GetRight()), IsPrice(), GetAbove()),
+    #     "Price that is above the total price",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Complement(Map(Map(IsObject("text"), IsObject("text"), GetAbove()), IsObject("text"), GetAbove())),
+    #     "Bottom two columns of text",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Intersection([IsObject("text"), Complement(Union([MatchesWord("total"), IsPrice()]))]),
+    #     "All text except prices and the word 'total'",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Map(MatchesWord("TOTAL"), IsPrice(), GetRight()),
+    #     'Prices to the right of the word "TOTAL"',
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Map(MatchesWord("tax"), IsObject("text"), GetAbove()),
+    #     'Text above the word "tax"',
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Union([IsPrice(), IsPhoneNumber()]),
+    #     "All prices and all phone numbers",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Intersection([IsObject("text"), Complement(IsPrice())]),
+    #     "All text that is not a price",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Union(
+    #         [
+    #             Map(MatchesWord("TOTAL"), IsObject("text"), GetRight()),
+    #             Map(MatchesWord("SUBTOTAL"), IsObject("text"), GetRight()),
+    #         ]
+    #     ),
+    #     'Text to the right of the word "TOTAL" or the word "SUBTOTAL"',
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Map(IsPrice(), IsObject("text"), GetLeft()),
+    #     "Text to the left of a price",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Intersection([IsObject("text"), Complement(Union([IsPrice(), IsPhoneNumber()]))]),
+    #     "All text that is not a price or phone number",
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Intersection(
+    #         [IsPrice(), Complement(Map(MatchesWord("TOTAL"), IsObject("text"), GetRight()))]
+    #     ),
+    #     'Text that is a price and is not to the right of the word "TOTAL"',
+    #     "receipts",
+    # ),
+    # Benchmark(
+    #     Map(Map(IsObject("text"), IsObject("text"), GetLeft()), IsObject("text"), GetLeft()),
+    #     "All text except two leftmost columns",
+    #     "receipts"
+    # ),
 ]
 
 
