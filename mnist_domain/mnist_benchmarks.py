@@ -9,11 +9,11 @@ mnist_benchmarks = [
             "Counts how many exam scores are still low (below 5) after adding an extra credit point."
         ),
         Benchmark(
-            "(fold max 0  (map (curry plus (apply pred_int input-img)) (filter (curry le 9) (map_imgs pred_int input-list))))",
-            "Calculates the highest score after x extra credit points are added to scores below 9."
+            "(fold max 0  (map (curry plus (apply pred_int input-img)) (filter (curry le 8) (map_imgs pred_int input-list))))",
+            "Calculates the highest score after x extra credit points are added to scores below 8."
         ),
         Benchmark(
-            "(fold plus 0 (map (curry plus (apply pred_int input-img)) (filter (curry le 9) (map_imgs pred_int input-list))))",
+            "(fold plus 0 (map (curry plus (apply pred_int input-img)) (filter (curry le 6) (map_imgs pred_int input-list))))",
             "For cheap products being sold at a store, calculates the total revenue from selling out these products after increasing their price by x dollars.",
         ),
         Benchmark(
@@ -60,7 +60,7 @@ mnist_benchmarks = [
         ),
 
         Benchmark(
-        "(fold max (apply pred_int input-img) (filter (curry ge 9) (map_imgs pred_int input-list)))",
+        "(fold max (apply pred_int input-img) (filter (curry ge 5) (map_imgs pred_int input-list)))",
         "Determine the maximum age among a group of at least age 10"
         ),
         Benchmark(
@@ -78,8 +78,8 @@ mnist_benchmarks = [
 
         # Noah?        
         Benchmark(
-            "(length (filter (curry le 9) (filter (curry ge 5) (map_imgs pred_int input-list))))",
-            "Counts the number of participants in a study between age 5 and 9"
+            "(length (filter (curry ge 4) (filter (curry le 8) (map_imgs pred_int input-list))))",
+            "Counts the number of participants in a study between age 4 and 8"
         ),
         Benchmark(
             "(fold max 0 (filter (curry le 2) (map_imgs pred_int input-list)))",
@@ -171,8 +171,8 @@ mnist_benchmarks = [
 
     # Maxine
         Benchmark(
-            "(length (filter (curry ge 1) (map_imgs pred_int input-list)))",
-            "This program counts the number of conference attendees who have more than 0 dietary restrictions."
+            "(length (filter (curry ge 2) (map_imgs pred_int input-list)))",
+            "This program counts the number of conference attendees who have more than 1 dietary restrictions."
         ), 
         Benchmark(
             "(fold plus 0 (map (curry mult (apply pred_int input-img)) (map_imgs pred_int input-list)))",
