@@ -116,7 +116,7 @@ def run_experiments(domain, seed_inc):
                     avg_answer_space_per_question,
                     avg_pred_set_size,
                     len(time_per_round),
-                    time_per_round
+                    time_per_round if len(time_per_round) < 5000 else [], # so csv is readable
                 )
             )
 
