@@ -5,7 +5,7 @@ from benchmark import Benchmark
 image_edit_benchmarks = benchmarks = [
     Benchmark(
         Map(
-            Union([MouthOpen(), IsSmiling(), EyesOpen()]),
+            Union([IsObject("Glasses"), IsSmiling(), EyesOpen()]),
             IsObject("Person"),
             GetBelow(),
         ),
@@ -216,19 +216,19 @@ image_edit_benchmarks = benchmarks = [
     Benchmark(
         Map(IsObject("Guitar"), IsObject("Face"), GetAbove()),
         "People playing guitar",
-        "guitars",
+        "festival",
     ),
     Benchmark(
         Union([IsObject("Guitar"), Map(IsObject("Guitar"), IsObject("Face"), GetAbove())]),
         "Guitars and people playing guitar",
-        "guitars",
+        "festival",
     ),
     Benchmark(
         Intersection(
             [IsObject("Face"), Complement(Map(IsObject("Guitar"), IsObject("Face"), GetAbove()))]
         ),
         "Faces of people not playing guitar",
-        "guitars",
+        "festival",
     ),
 
     # # RECEIPTS BENCHMARKS!
