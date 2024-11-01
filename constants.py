@@ -23,8 +23,8 @@ ATTRIBUTES = [
     "EyesOpen",
     "Smile",
     "MouthOpen",
-    # "Price",
-    # "PhoneNumber"
+    "Price",
+    "PhoneNumber"
 ]
 MIN_IOU = .5
 MIN_SAMPLES = 3

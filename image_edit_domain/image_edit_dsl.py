@@ -138,11 +138,14 @@ class MatchesWord(Attribute):
 
     def get_grammar_rule(self):
         return type(self).__name__
+    
+    def duplicate(self):
+        return MatchesWord(self.word)
 
 
 class IsPhoneNumber(Attribute):
     def duplicate(self):
-        return IsPhoneNumber(self.val)
+        return IsPhoneNumber()
 
     def __str__(self):
         return type(self).__name__
@@ -153,7 +156,7 @@ class IsPhoneNumber(Attribute):
 
 class IsPrice(Attribute):
     def duplicate(self):
-        return IsPrice(self.val)
+        return IsPrice()
 
     def __str__(self):
         return type(self).__name__

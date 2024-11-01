@@ -56,26 +56,28 @@ def run_experiments(domain, seed_inc):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        ("standard", LearnSy),
+        # ("standard", LearnSy),
         # # SampleSy (baseline)
         ("standard", SampleSy),
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
-        ("CCE-NoAbs", SmartLabel),
+        # ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
-        ("CCE", SmartLabelNoUB),
+        # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        ("CCE", SelectRandom),
+        # ("CCE", SelectRandom),
     ] 
 
     for semantics, question_selection in test_settings:
 
         pr = cProfile.Profile()
         pr.enable()
-        active_learning = domain(semantics, question_selection)
+        active_learning = domain(semantics, question_selection, False)
         for i, benchmark in enumerate(active_learning.benchmarks):
             random.seed(SEED + seed_inc + i)
+            print(benchmark.dataset_name)
+            active_learning.set_synthesizer(benchmark.dataset_name == "receipts")
 
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")
@@ -279,6 +281,7 @@ def get_experiment_results(domains, seed_inc):
         for row in rows:
             writer.writerow(row)
 
+
 def get_combined_table():
     overall_data_dict = {}
     keys = [
@@ -314,8 +317,8 @@ def get_combined_table():
 
 
 if __name__ == "__main__":
-    for i in range(NUM_SEEDS):
-        domains = [MNISTActiveLearning, ImageEditActiveLearning]
+    for i in range(5):
+        domains = [ ImageEditActiveLearning]
         for domain in domains:
             run_experiments(domain, i)
         get_experiment_results(domains, i)

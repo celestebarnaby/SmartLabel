@@ -9,12 +9,13 @@ from image_edit_domain.image_edit_utils import *
 from image_edit_domain.image_edit_interpreter import ImageEditInterpreter
 
 class ImageEditSynthesizer(Synthesizer):
-    def __init__(self, semantics):
+    def __init__(self, semantics, use_text=False):
         super().__init__(semantics)
         self.worklist = []
         self.interp = ImageEditInterpreter()
         self.program_counter = itertools.count(0)
         self.output_dict = {} 
+        self.use_text=use_text
 
     def set_object_list(self, input_space):
         labels_to_occs = {}
@@ -26,7 +27,22 @@ class ImageEditSynthesizer(Synthesizer):
                 labels_to_occs[label] += 1 
         sorted_labels_to_occs = sorted(list(labels_to_occs.items()), key=lambda x: x[1], reverse=True)
         # object must appear in at least a certain percent of images -- i.e. remove rare objects
+        # TODO: replace the hardcoded numbers with global variables
         self.all_objects = [label for label, occs in sorted_labels_to_occs if occs >= max(len(input_space) * .05, 3)]
+
+
+    def set_word_list(self, input_space):
+        words_to_occs = {}
+        for abs_img in input_space.values():
+            words_in_img = {abs_img['conf'][obj_id]["Text"] for obj_id in abs_img['conf'] if "Text" in abs_img['conf'][obj_id]}
+            for word in words_in_img:
+                if word not in words_to_occs:
+                    words_to_occs[word] = 0 
+                words_to_occs[word] += 1 
+        sorted_words_to_occs = sorted(list(words_to_occs.items()), key=lambda x: x[1], reverse=True)
+        # object must appear in at least 2 images -- i.e. remove rare objects
+        self.all_words = [label for label, occs in sorted_words_to_occs if occs >= max(len(input_space) * .01, 3)]
+        # self.all_words = [label for label, occs in sorted_words_to_occs if occs >= 2]
 
 
     def check_programs(self, program_space, examples):
@@ -98,15 +114,21 @@ class ImageEditSynthesizer(Synthesizer):
                     self.output_dict[hole.output_under],
                     examples,
                     self.semantics,
+                    self.use_text,
                 )
             elif node_type == "attr":
                 new_sub_exprs = get_attributes(
-                    self.output_dict[hole.output_over], self.output_dict[hole.output_under]
+                    self.output_dict[hole.output_over], self.output_dict[hole.output_under], self.use_text
                 )
             elif node_type == "obj":
                 new_sub_exprs = [
                     (obj, [], [], [], 0)
                     for obj in self.all_objects 
+                ]
+            elif node_type == "word":
+                new_sub_exprs = [
+                    (word, [], [], [], 0)
+                    for word in self.all_words
                 ]
             else:
                 # TODO: error handling

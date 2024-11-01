@@ -14,15 +14,15 @@ from image_edit_domain.image_edit_benchmarks import image_edit_benchmarks
 
 
 class ImageEditActiveLearning(ActiveLearning):
-    def __init__(self, semantics, question_selection):
-        super().__init__(semantics, question_selection)
+    def __init__(self, semantics, question_selection, use_text):
+        super().__init__(semantics, question_selection, use_text)
         self.dataset_to_program_space = {}
 
     def set_benchmarks(self):
         self.benchmarks = image_edit_benchmarks 
     
-    def set_synthesizer(self):
-        self.synth = ImageEditSynthesizer(self.semantics)
+    def set_synthesizer(self, use_text):
+        self.synth = ImageEditSynthesizer(self.semantics, use_text)
     
     def set_interpreter(self):
         self.interp = ImageEditInterpreter()
@@ -47,6 +47,7 @@ class ImageEditActiveLearning(ActiveLearning):
         self.examples = examples 
         self.labelling_qs = labelling_qs
         self.synth.set_object_list(self.input_space)
+        self.synth.set_word_list(self.input_space)
         self.gt_prog = benchmark.gt_prog
         self.num_samples = IMAGE_EDIT_NUM_SAMPLES
         avg_answer_space_per_question = np.mean([2 for _ in labelling_qs] + [len(inp["conf_list"]) for inp in input_space.values()])

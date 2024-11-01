@@ -24,20 +24,20 @@ class ImageEditInterpreter(Interpreter):
                     objs_over.add(obj_id)
                     if obj_abs_img["Flag"]:
                         objs_under.add(obj_id)
-        # elif isinstance(expr, MatchesWord):
-        #     objs_under = set()
-        #     objs_over = set()
-        #     for (obj_id, obj_abs_img) in abs_img.items():
-        #         if obj_abs_img["Label"] == "Text" and obj_abs_img["Text"] == expr.word:
-        #             objs_over.add(obj_id)
-        #             if obj_abs_img["Flag"]:
-        #                 objs_under.add(obj_id)
+        elif isinstance(expr, MatchesWord):
+            objs_under = set()
+            objs_over = set()
+            for (obj_id, obj_abs_img) in abs_img.items():
+                if obj_abs_img["Label"] == "Text" and obj_abs_img["Text"].upper() == expr.word.upper():
+                    objs_over.add(obj_id)
+                    if obj_abs_img["Flag"]:
+                        objs_under.add(obj_id)
         elif (
             isinstance(expr, IsSmiling)
             or isinstance(expr, EyesOpen)
             or isinstance(expr, MouthOpen)
-            # or isinstance(expr, IsPrice)
-            # or isinstance(expr, IsPhoneNumber)
+            or isinstance(expr, IsPrice)
+            or isinstance(expr, IsPhoneNumber)
         ):
             objs_under = {obj for obj in abs_img if str(expr) in abs_img[obj] and abs_img[obj][str(expr)] == [True] and abs_img[obj]["Flag"]}
             objs_over = {obj for obj in abs_img if str(expr) in abs_img[obj] and (abs_img[obj][str(expr)] == True or (isinstance(abs_img[obj][str(expr)], list) and True in abs_img[obj][str(expr)]))}
@@ -113,45 +113,45 @@ class ImageEditInterpreter(Interpreter):
                     # Update our constraints to specify that the object MUST NOT exist
                     constraints[obj_id]["Exists"] = False 
             return True
-        # elif isinstance(expr, MatchesWord):
-        #     # These are the objects that the leaf node MUST output
-        #     for obj_id in goal_under:
-        #         # If the image doesn't contain this object, or the object has different text than the expression, return False
-        #         if obj_id not in abs_img or abs_img[obj_id]["Label"] != "Text" or abs_img[obj_id]["Text"] != expr.word:
-        #             return False
-        #         if obj_id not in constraints:
-        #             constraints[obj_id] = {}
+        elif isinstance(expr, MatchesWord):
+            # These are the objects that the leaf node MUST output
+            for obj_id in goal_under:
+                # If the image doesn't contain this object, or the object has different text than the expression, return False
+                if obj_id not in abs_img or abs_img[obj_id]["Label"] != "Text" or abs_img[obj_id]["Text"].upper() != expr.word.upper():
+                    return False
+                if obj_id not in constraints:
+                    constraints[obj_id] = {}
 
-        #         # If our constraints specify that this object CANNOT be output, return False
-        #         if "Exists" in constraints[obj_id] and not constraints[obj_id]["Exists"]:
-        #             return False
+                # If our constraints specify that this object CANNOT be output, return False
+                if "Exists" in constraints[obj_id] and not constraints[obj_id]["Exists"]:
+                    return False
                 
-        #         # Update constraints to specify that the object MUST exists
-        #         constraints[obj_id]["Exists"] = True
+                # Update constraints to specify that the object MUST exists
+                constraints[obj_id]["Exists"] = True
 
-        #     # These are the objects that MUST NOT be output by the leaf node
-        #     for obj_id in set(abs_img.keys()) - goal_over:
-        #         # If the lead node WILL output the object, return False
-        #         if abs_img[obj_id]["Flag"] == True and abs_img[obj_id]['Label'] == "Text" and abs_img[obj_id]["Text"] == expr.word:
-        #             return False
-        #         if abs_img[obj_id]["Label"] == "Text" and abs_img[obj_id]["Text"] == expr.word:
-        #             if obj_id not in constraints:
-        #                 constraints[obj_id] = {}
+            # These are the objects that MUST NOT be output by the leaf node
+            for obj_id in set(abs_img.keys()) - goal_over:
+                # If the lead node WILL output the object, return False
+                if abs_img[obj_id]["Flag"] == True and abs_img[obj_id]['Label'] == "Text" and abs_img[obj_id]["Text"] == expr.word:
+                    return False
+                if abs_img[obj_id]["Label"] == "Text" and abs_img[obj_id]["Text"] == expr.word:
+                    if obj_id not in constraints:
+                        constraints[obj_id] = {}
 
-        #             # If our constraints specify that the object MUST be output, return False
-        #             if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"]:
-        #                 return False
+                    # If our constraints specify that the object MUST be output, return False
+                    if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"]:
+                        return False
                     
-        #             # Update our constraints to specify that the object MUST NOT exist
-        #             constraints[obj_id]["Exists"] = False 
-        #     return True
+                    # Update our constraints to specify that the object MUST NOT exist
+                    constraints[obj_id]["Exists"] = False 
+            return True
         # Leaf nodes for specific attributes of human faces. This case is similar to the IsObject case.
         elif (
             isinstance(expr, IsSmiling)
             or isinstance(expr, EyesOpen)
             or isinstance(expr, MouthOpen)
-            # or isinstance(expr, IsPrice)
-            # or isinstance(expr, IsPhoneNumber)
+            or isinstance(expr, IsPrice)
+            or isinstance(expr, IsPhoneNumber)
         ):
             # Objects that MUST be output
             for obj_id in goal_under:
@@ -475,12 +475,12 @@ class ImageEditInterpreter(Interpreter):
                 if obj_abs_img["Label"] == expr.obj:
                     objs.add(obj_id)
             res = objs
-        # elif isinstance(expr, MatchesWord):
-        #     objs = set()
-        #     for (obj_id, obj_abs_img) in abs_img.items():
-        #         if obj_abs_img["Label"] == "Text" and obj_abs_img["Text"] == expr.word:
-        #             objs.add(obj_id)
-        #     res = objs
+        elif isinstance(expr, MatchesWord):
+            objs = set()
+            for (obj_id, obj_abs_img) in abs_img.items():
+                if obj_abs_img["Label"] == "Text" and obj_abs_img["Text"].upper() == expr.word.upper():
+                    objs.add(obj_id)
+            res = objs
         elif isinstance(expr, Union):
             res = set()
             for sub_expr in expr.expressions:
@@ -501,8 +501,8 @@ class ImageEditInterpreter(Interpreter):
             isinstance(expr, IsSmiling)
             or isinstance(expr, EyesOpen)
             or isinstance(expr, MouthOpen)
-            # or isinstance(expr, IsPrice)
-            # or isinstance(expr, IsPhoneNumber)
+            or isinstance(expr, IsPrice)
+            or isinstance(expr, IsPhoneNumber)
         ):
             res = {obj for obj in abs_img if str(expr) in abs_img[obj] and abs_img[obj][str(expr)]}
         else:

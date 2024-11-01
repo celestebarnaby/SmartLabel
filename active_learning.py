@@ -8,7 +8,7 @@ from image_edit_domain.image_edit_dsl import *
 from utils import *
 
 class ActiveLearning(ABC):
-    def __init__(self, semantics, question_selection):
+    def __init__(self, semantics, question_selection, use_text):
         '''
         This is the base class for active learning. Each domain requires its own subclass with its own interpreter, 
         synthesizer, benchmarks, and question space.
@@ -19,7 +19,7 @@ class ActiveLearning(ABC):
 
         self.set_benchmarks()
         self.set_interpreter()
-        self.set_synthesizer()
+        self.set_synthesizer(use_text)
         
         self.question_selection.interp = self.interp
 
