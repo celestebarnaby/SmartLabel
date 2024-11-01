@@ -564,18 +564,20 @@ if __name__ == "__main__":
         .004,
         .00375,
     ]
-    # for delta in mnist_deltas:
-    #     interp = MNISTInterpreter()
-    #     input_questions = get_questions_from_img_lists(img_lists, interp, delta)
-    #     run_experiments(MNISTActiveLearning, input_questions, delta)
-    #     get_experiment_results([MNISTActiveLearning])
-    # make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
+    for delta in mnist_deltas:
+        interp = MNISTInterpreter()
+        input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+        run_experiments(MNISTActiveLearning, input_questions, delta)
+        # get_experiment_results([MNISTActiveLearning])
+    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
     image_edit_deltas = [
         .45,
-        # .425,
-        # .4,
-        # .375,
+        .425,
+        .4,
+        .375,
+        .35,
+        .325,
     ]
     for delta in image_edit_deltas:
         run_experiments(ImageEditActiveLearning, {}, delta)
