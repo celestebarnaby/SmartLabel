@@ -289,7 +289,7 @@ def get_experiment_results(domains):
         total_runtime = sum(val["refine_hs_times"]) + sum(val["select_question_times"]) + sum(val["distinguish_times"])
         # explode = (0.05, 0.05, 0.05)
         # make donut plot
-        labels = ["Refine HS", "Distinguish", "Select Question"]
+        labels = ["Refine\nHS", "Distinguish", "Select\nQuestion"]
         sizes = [sum(val["refine_hs_times"])/total_runtime, sum(val["distinguish_times"])/total_runtime, sum(val["select_question_times"])/total_runtime, ]
         # colors = ['#fc8d62', '#8da0cb', '#e78ac3']
         colors = ['#DD7596', '#B7C3F3', '#8EB897']
