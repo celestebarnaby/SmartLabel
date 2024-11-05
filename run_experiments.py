@@ -180,80 +180,79 @@ def get_experiment_results(domains):
         "Total Distinguish Time"
     ]]
 
-    # Create a table that has the results presented in tables 1, 2, 3 in the paper.
+    # Create pie chart
     for domain in domains:
-        for task_type in [""] if domain.__name__ == "ImageEditActiveLearning" else [""]:
-            setting_to_data_per_domain = {}
-            data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_bottleneck.csv", task_type)
+        setting_to_data_per_domain = {}
+        data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_bottleneck.csv")
 
-            for (
-                semantics, 
-                question_selector, 
-                time_per_round, 
-                init_time, 
-                correct, 
-                num_initial_programs, 
-                num_final_programs, 
-                refine_hs_time,
-                select_question_time,
-                distinguish_time
-            ) in zip(
-            data_dict["Semantics"], 
-            data_dict["Question Selector"], 
-            data_dict["Time Per Round"], 
-            data_dict["Initial Synthesis Time"], 
-            data_dict["Correct?"], 
-            data_dict["Initial Program Space Size"], 
-            data_dict["Final Program Space Size"],
-            data_dict["RefineHS Time"],
-            data_dict["Select Question Time"],
-            data_dict["Distinguish Time"]
-            ):
-                key = "{}_{}".format(semantics, question_selector)
-                if key not in setting_to_data_per_domain:
-                    setting_to_data_per_domain[key] = {
-                        "runtimes" : [],
-                        "num_rounds" : [],
-                        "num_init_progs" : [],
-                        "num_final_progs" : [],
-                        "correct" : 0 ,
-                        "refine_hs_times" : [],
-                        "select_question_times" : [],
-                        "distinguish_times" : []
-                    } 
-                if key not in setting_to_data_overall:
-                    setting_to_data_overall[key] = {
-                        "runtimes" : [],
-                        "num_rounds" : [],
-                        "num_init_progs" : [],
-                        "num_final_progs" : [],
-                        "correct" : 0  ,
-                        "refine_hs_times" : [],
-                        "select_question_times" : [],
-                        "distinguish_times" : []        
-                    } 
-                time_per_round = ast.literal_eval(time_per_round)
-                setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
-                setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
-                setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
-                setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
-                setting_to_data_per_domain[key]["refine_hs_times"].append(float(refine_hs_time))
-                setting_to_data_per_domain[key]["select_question_times"].append(float(select_question_time))
-                setting_to_data_per_domain[key]["distinguish_times"].append(float(distinguish_time))
+        for (
+            semantics, 
+            question_selector, 
+            time_per_round, 
+            init_time, 
+            correct, 
+            num_initial_programs, 
+            num_final_programs, 
+            refine_hs_time,
+            select_question_time,
+            distinguish_time
+        ) in zip(
+        data_dict["Semantics"], 
+        data_dict["Question Selector"], 
+        data_dict["Time Per Round"], 
+        data_dict["Initial Synthesis Time"], 
+        data_dict["Correct?"], 
+        data_dict["Initial Program Space Size"], 
+        data_dict["Final Program Space Size"],
+        data_dict["RefineHS Time"],
+        data_dict["Select Question Time"],
+        data_dict["Distinguish Time"]
+        ):
+            key = "{}_{}".format(semantics, question_selector)
+            if key not in setting_to_data_per_domain:
+                setting_to_data_per_domain[key] = {
+                    "runtimes" : [],
+                    "num_rounds" : [],
+                    "num_init_progs" : [],
+                    "num_final_progs" : [],
+                    "correct" : 0 ,
+                    "refine_hs_times" : [],
+                    "select_question_times" : [],
+                    "distinguish_times" : []
+                } 
+            if key not in setting_to_data_overall:
+                setting_to_data_overall[key] = {
+                    "runtimes" : [],
+                    "num_rounds" : [],
+                    "num_init_progs" : [],
+                    "num_final_progs" : [],
+                    "correct" : 0  ,
+                    "refine_hs_times" : [],
+                    "select_question_times" : [],
+                    "distinguish_times" : []        
+                } 
+            time_per_round = ast.literal_eval(time_per_round)
+            setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
+            setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
+            setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
+            setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
+            setting_to_data_per_domain[key]["refine_hs_times"].append(float(refine_hs_time))
+            setting_to_data_per_domain[key]["select_question_times"].append(float(select_question_time))
+            setting_to_data_per_domain[key]["distinguish_times"].append(float(distinguish_time))
 
-                setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
-                setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
-                setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
-                setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
-                setting_to_data_overall[key]["refine_hs_times"].append(float(refine_hs_time))
-                setting_to_data_overall[key]["select_question_times"].append(float(select_question_time))
-                setting_to_data_overall[key]["distinguish_times"].append(float(distinguish_time))
+            setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
+            setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
+            setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
+            setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
+            setting_to_data_overall[key]["refine_hs_times"].append(float(refine_hs_time))
+            setting_to_data_overall[key]["select_question_times"].append(float(select_question_time))
+            setting_to_data_overall[key]["distinguish_times"].append(float(distinguish_time))
 
-                for i, round_time in enumerate(time_per_round):
-                    if i == 0:
-                        round_time += float(init_time)
-                    setting_to_data_per_domain[key]["runtimes"].append(round_time)
-                    setting_to_data_overall[key]["runtimes"].append(round_time)
+            for i, round_time in enumerate(time_per_round):
+                if i == 0:
+                    round_time += float(init_time)
+                setting_to_data_per_domain[key]["runtimes"].append(round_time)
+                setting_to_data_overall[key]["runtimes"].append(round_time)
 
         for key, val in setting_to_data_per_domain.items():
             rows.append([
@@ -292,31 +291,28 @@ def get_experiment_results(domains):
         # make donut plot
         labels = ["Refine HS", "Distinguish", "Select Question"]
         sizes = [sum(val["refine_hs_times"])/total_runtime, sum(val["distinguish_times"])/total_runtime, sum(val["select_question_times"])/total_runtime, ]
-        colors = ['#fc8d62', '#8da0cb', '#e78ac3']
+        # colors = ['#fc8d62', '#8da0cb', '#e78ac3']
+        colors = ['#DD7596', '#B7C3F3', '#8EB897']
+        
 
         # Create the donut plot
         fig, ax = plt.subplots(figsize=(6, 6))
-        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'white'}, pctdistance=0.85)
+        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90, wedgeprops={'edgecolor': 'white'}, pctdistance=0.80)
 
         for text in texts:
-            text.set_fontsize(11)
+            text.set_fontsize(15)
+        for text in autotexts:
+            text.set_fontsize(15)
 
         # Add a central circle for the 'donut' effect
-        centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+        centre_circle = plt.Circle((0, 0), 0.60, fc='white')
         fig.gca().add_artist(centre_circle)
 
         # Styling
-        plt.title('Active Learning Runtime by Subprocess')
+        # plt.title('Active Learning Runtime by Subprocess')
         ax.axis('equal')  # Equal aspect ratio ensures the chart is circular
 
-        plt.savefig('./output/bottleneck.pdf', format='pdf', dpi=300, bbox_inches='tight')
-
-
-
-    with open(f"./output/table_data.csv", "w") as f:
-        writer = csv.writer(f)
-        for row in rows:
-            writer.writerow(row)
+        plt.savefig('./output/bottleneck2.pdf', format='pdf', dpi=300, bbox_inches='tight')
 
 
 if __name__ == "__main__":
