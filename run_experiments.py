@@ -521,7 +521,7 @@ def make_scalability_experiment_plot(domain, deltas):
     # Plot the fitted exponential curve
     x_fit = np.linspace(min(x_axis), max(x_axis), 500)
     y_fit = exp_func(x_fit, params[0], params[1])
-    plt.plot(x_fit, y_fit, color='mediumpurple', alpha=.5)
+    plt.plot(x_fit, y_fit, color='mediumpurple', alpha=.5, linestyle='--')
     # Calculate R^2 score
     exp_y_actual = [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis]
     x_axis = np.array(x_axis)
@@ -535,7 +535,7 @@ def make_scalability_experiment_plot(domain, deltas):
     plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis], color='cornflowerblue', label='SmartLabel')
     # plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["conf_minimax_partial_conf"] for item in x_axis], color='orange', label='CCE-NoAbs')
     # plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["bidirect_minimax_conf"] for item in x_axis], color='mediumseagreen', label='QS-NoUB')
-    plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis], color='mediumpurple', label='QS-NoUB + CCE-NoAbs')
+    plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis], color='mediumpurple', label='Ablation', marker='^')
 
 
 
@@ -568,7 +568,7 @@ if __name__ == "__main__":
         interp = MNISTInterpreter()
         input_questions = get_questions_from_img_lists(img_lists, interp, delta)
         run_experiments(MNISTActiveLearning, input_questions, delta)
-        # get_experiment_results([MNISTActiveLearning])
+        get_experiment_results([MNISTActiveLearning])
     make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
     image_edit_deltas = [
