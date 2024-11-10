@@ -442,15 +442,16 @@ def get_questions_from_img_lists(img_lists, interp, delta):
 
     return input_space
 
+
 def make_scalability_experiment_plot(domain, deltas):
 
     pred_set_size_to_avg_runtime = {}
-    
     first_threshold = True
     benchmark_to_num_rounds = {}
 
     for delta in deltas:
 
+        # Load benchmark results for each delta
         data_dict = csv_to_dict(f"./output_scalability/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv")
 
         semantics_to_rtimes_per_round = {
@@ -476,8 +477,10 @@ def make_scalability_experiment_plot(domain, deltas):
                     round_time += float(init_time)
                 if i not in semantics_to_rtimes_per_round[key]:
                     semantics_to_rtimes_per_round[key].append([])
+                # A given benchmark may require more rounds of user interaction for a larger delta
+                # To compare across different deltas, we only consider the number of rounds that the 
+                # *smallest* delta took to solve the benchmark
                 if first_threshold or i < benchmark_to_num_rounds[benchmark]:
-                    # if True:
                     semantics_to_rtimes_per_round[key][i].append(round_time)
             if first_threshold:
                 benchmark_to_num_rounds[benchmark] = int(num_rounds)
@@ -503,15 +506,11 @@ def make_scalability_experiment_plot(domain, deltas):
     linear_fit = np.poly1d(linear_coeffs)
     x_vals = np.linspace(min(x_axis), max(x_axis), 500)
     plt.plot(x_vals, linear_fit(x_vals), color='cornflowerblue', alpha=.5)
-
-
-    # Actual y values from your data
+    # Actual y values from data
     y_actual = [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis]
-
     # Predicted y values using the fitted line
     y_pred = linear_fit(x_axis)
-
-    # Calculate R^2 score
+    # Calculate R^2 score for linear trendline
     r2 = r2_score(y_actual, y_pred)
     print(f"Linear R^2: {r2}")
 
@@ -525,36 +524,25 @@ def make_scalability_experiment_plot(domain, deltas):
     x_fit = np.linspace(min(x_axis), max(x_axis), 500)
     y_fit = exp_func(x_fit, params[0], params[1])
     plt.plot(x_fit, y_fit, color='mediumpurple', alpha=.5, linestyle='--')
-    # Calculate R^2 score
+    # Calculate R^2 score for exponential curve
     exp_y_actual = [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis]
     x_axis = np.array(x_axis)
     exp_y_pred = exp_func(x_axis, params[0], params[1])
-    print(len(exp_y_actual))
-    print(len(exp_y_pred))
     r2_exp = r2_score(exp_y_actual, exp_y_pred)
     print(f"Exponential model R^2: {r2_exp}")
 
-    # Create scatter plot
+    # Make scatter plot
     plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis], color='cornflowerblue', label='SmartLabel')
-    # plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["conf_minimax_partial_conf"] for item in x_axis], color='orange', label='CCE-NoAbs')
-    # plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["bidirect_minimax_conf"] for item in x_axis], color='mediumseagreen', label='QS-NoUB')
     plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis], color='mediumpurple', label='Ablation', marker='^')
-
-
 
     # Add labels and title
     plt.xlabel('Avg. Prediction Set Size')
     plt.ylabel('Avg. User Interaction Time (s)')
-    # plt.title('')
+    plt.title('PixelList' if domain == MNISTActiveLearning else "ImageEdit")
 
-    # Add a legend
     plt.legend()
-
-
     plt.tight_layout()
-    # Display the plot
     plt.savefig(f'./output_scalability/scalability_plot_{domain.__name__}.pdf', dpi=300)
-
 
 
 if __name__ == "__main__":
@@ -567,16 +555,13 @@ if __name__ == "__main__":
         .004,
         .00375,
     ]
-    # for delta in mnist_deltas:
-    #     interp = MNISTInterpreter()
-    #     input_questions = get_questions_from_img_lists(img_lists, interp, delta)
-    #     run_experiments(MNISTActiveLearning, input_questions, delta)
-    #     get_experiment_results([MNISTActiveLearning])
-    # make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
+    for delta in mnist_deltas:
+        interp = MNISTInterpreter()
+        input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+        run_experiments(MNISTActiveLearning, input_questions, delta)
+    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
     image_edit_deltas = [
-        .5,
-        .475,
         .45,
         .425,
         .4,
@@ -588,5 +573,4 @@ if __name__ == "__main__":
     saved_program_spaces = {}
     for i, delta in enumerate(image_edit_deltas):
         run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
-        # get_experiment_results([ImageEditActiveLearning])
     make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas)    
