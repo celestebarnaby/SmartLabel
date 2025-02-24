@@ -49,6 +49,8 @@ def run_experiments(domain, seed_inc):
              "Avg. Answer Space Size per Question",
              "Avg. Prediction Set Size",
              "# Rounds",  
+             "# Label Questions",
+             "# Input Questions",
              "Time Per Round",
             )]
 
@@ -56,17 +58,17 @@ def run_experiments(domain, seed_inc):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        ("standard", LearnSy),
+        # ("standard", LearnSy),
         # # SampleSy (baseline)
-        ("standard", SampleSy),
+        # ("standard", SampleSy),
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
-        ("CCE-NoAbs", SmartLabel),
+        # ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
-        ("CCE", SmartLabelNoUB),
+        # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        ("CCE", SelectRandom),
+        # ("CCE", SelectRandom),
     ] 
 
     for semantics, question_selection in test_settings:
@@ -96,7 +98,7 @@ def run_experiments(domain, seed_inc):
             # Timeout after 600 seconds
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(600)
-            output_progs, time_per_round, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
+            output_progs, time_per_round, num_label_qs, num_input_qs, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
             correct = active_learning.synth.interp.check_gt_equivalence(active_learning.gt_prog, output_progs[0], active_learning.input_space, skipped_inputs)  if not isinstance(output_progs, str) else output_progs
@@ -116,6 +118,8 @@ def run_experiments(domain, seed_inc):
                     avg_answer_space_per_question,
                     avg_pred_set_size,
                     len(time_per_round),
+                    num_label_qs,
+                    num_input_qs,
                     time_per_round if len(time_per_round) < 5000 else [], # so csv is readable
                 )
             )
@@ -154,6 +158,8 @@ def get_experiment_results(domains, seed_inc):
         "Domain",
         "Test Setting",
         "Avg. # Rounds of Interaction",
+        "Avg. # Label Questions",
+        "Avg. # Input Questions",
         "Avg. # Initial Programs",
         "Avg. # Final Programs",
         "Avg. Input Space Size",
@@ -173,6 +179,8 @@ def get_experiment_results(domains, seed_inc):
             semantics, 
             question_selector, 
             time_per_round, 
+            num_label_qs,
+            num_input_qs,
             init_time, 
             correct, 
             num_initial_programs, 
@@ -185,6 +193,8 @@ def get_experiment_results(domains, seed_inc):
                 data_dict["Semantics"], 
                 data_dict["Question Selector"], 
                 data_dict["Time Per Round"], 
+                data_dict["# Label Questions"],
+                data_dict["# Input Questions"],
                 data_dict["Initial Synthesis Time"], 
                 data_dict["Correct?"], 
                 data_dict["Initial Program Space Size"], 
@@ -199,6 +209,8 @@ def get_experiment_results(domains, seed_inc):
                 setting_to_data_per_domain[key] = {
                     "runtimes" : [],
                     "num_rounds" : [],
+                    "num_label_qs" : [],
+                    "num_input_qs" : [],
                     "num_init_progs" : [],
                     "num_final_progs" : [],
                     "input_space_sizes" : [],
@@ -211,6 +223,8 @@ def get_experiment_results(domains, seed_inc):
                 setting_to_data_overall[key] = {
                     "runtimes" : [],
                     "num_rounds" : [],
+                    "num_label_qs" : [],
+                    "num_input_qs" : [],
                     "num_init_progs" : [],
                     "num_final_progs" : [],
                     "input_space_sizes" : [],
@@ -221,6 +235,8 @@ def get_experiment_results(domains, seed_inc):
                 } 
             time_per_round = ast.literal_eval(time_per_round)
             setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
+            setting_to_data_per_domain[key]["num_label_qs"].append(int(num_label_qs))
+            setting_to_data_per_domain[key]["num_input_qs"].append(int(num_input_qs))
             setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
             setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
             setting_to_data_per_domain[key]["input_space_sizes"].append(int(input_space_size))
@@ -230,6 +246,8 @@ def get_experiment_results(domains, seed_inc):
             setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
 
             setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
+            setting_to_data_overall[key]["num_label_qs"].append(int(num_label_qs))
+            setting_to_data_overall[key]["num_input_qs"].append(int(num_input_qs))
             setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
             setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
             setting_to_data_overall[key]["input_space_sizes"].append(int(input_space_size))
@@ -249,6 +267,8 @@ def get_experiment_results(domains, seed_inc):
                 domain.__name__,
                 key,
                 np.mean(val["num_rounds"]),
+                np.mean(val["num_label_qs"]),
+                np.mean(val["num_input_qs"]),
                 np.mean(val["num_init_progs"]),
                 np.mean(val["num_final_progs"]),
                 np.mean(val["input_space_sizes"]),
@@ -264,6 +284,8 @@ def get_experiment_results(domains, seed_inc):
             "Overall",
             key,
             np.mean(val["num_rounds"]),
+            np.mean(val["num_label_qs"]),
+            np.mean(val["num_input_qs"]),
             np.mean(val["num_init_progs"]),
             np.mean(val["num_final_progs"]),
             np.mean(val["input_space_sizes"]),
@@ -314,9 +336,9 @@ def get_combined_table():
 
 
 if __name__ == "__main__":
-    for i in range(NUM_SEEDS):
+    for i in range(1):
         domains = [MNISTActiveLearning, ImageEditActiveLearning]
-        for domain in domains:
-            run_experiments(domain, i)
+        # for domain in domains:
+            # run_experiments(domain, i)
         get_experiment_results(domains, i)
-    get_combined_table()
+    # get_combined_table()

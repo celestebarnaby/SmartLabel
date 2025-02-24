@@ -40,6 +40,8 @@ class ActiveLearning(ABC):
         Runs the active learning procedure, and outputs a single program.
         '''
         time_per_round = []
+        num_label_qs = 0
+        num_input_qs = 0
         INDIST_INPS[:] = []
         try:
             rounds = 1
@@ -52,19 +54,28 @@ class ActiveLearning(ABC):
                 # Under our conformal guarantee, this happens with low probability.
                 if len(program_space) == 0:
                     print("Active learning failed.")
-                    return "FAIL", time_per_round, skipped_inputs
+                    return "FAIL", time_per_round, num_label_qs, num_input_qs, skipped_inputs
                 print(f"Num programs in program space: {len(program_space)}")
                 print("Checking distinguishability!")
                 finished = self.question_selection.distinguish(program_space, self.input_space, self.examples, skipped_inputs)
                 if finished:
                     print("All programs indistinguishable! Active learning finished!")
                     print("Synthesized prog: {}".format(program_space[0]))
-                    return program_space, time_per_round, skipped_inputs
+                    return program_space, time_per_round, num_label_qs, num_input_qs, skipped_inputs
                 # We seed here so that we sample the same programs for every benchmark/ablation
                 random.seed(rounds)
                 # Sample a subset of the program space
                 samples = random.sample(program_space, min(self.num_samples, len(program_space)))
-                new_input_question = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
+                new_input_question, question_type = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
+                if question_type == "label":
+                    num_label_qs += 1
+                    raise TypeError
+                elif question_type == "input":
+                    num_input_qs += 1 
+                    raise TypeError
+                else:
+                    num_label_qs += 1
+                    num_input_qs += 1
                 # This will happen if the question is a labelling question
                 if new_input_question is None:
                     pass 
@@ -78,7 +89,7 @@ class ActiveLearning(ABC):
                 rounds += 1
                 time_per_round.append(time.perf_counter() - round_start_time)
         except TimeOutException:
-            return "TIMEOUT", time_per_round, skipped_inputs
+            return "TIMEOUT", time_per_round, num_label_qs, num_input_qs, skipped_inputs
         
 
     def add_example(self, new_question, new_answer, skipped_inputs):

@@ -101,9 +101,9 @@ class SmartLabel(QuestionSelector):
             if skip is not None:
                 labelling_qs[:] = [other_labelling_q for other_labelling_q in labelling_qs if inp_id != other_labelling_q.input_id or obj_id != other_labelling_q.obj_id]
             if inp_id not in current_qs:
-                return inp_id
-            return None
-        return optimal_q
+                return inp_id, "input and label"
+            return None, optimal_q_type
+        return optimal_q, optimal_q_type
     
 
     def get_input_q_pruning_power(self, q, partial_conf, progs, q_index):
