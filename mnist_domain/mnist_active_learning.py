@@ -87,7 +87,7 @@ class MNISTActiveLearning(ActiveLearning):
                 "conf" : {"img-list" : q["list-img-int-conf"], "img" : q["img-int-conf"]}
             }
 
-            new_inp["conf_list"] = self.interp.get_all_universes(new_inp["conf"])
+            new_inp["conf_list"] = self.interp.get_all_universes(new_inp)
             inp_id = len(new_input_questions)
             new_input_questions[inp_id] = new_inp 
 

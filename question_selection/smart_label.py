@@ -55,8 +55,8 @@ class SmartLabel(QuestionSelector):
                 pruning_power = self.get_labelling_q_pruning_power(inp, obj_id, attr_id, program_space, q_index, output, False)
 
             concrete_pruning_powers.append(pruning_power)
-            if pruning_power.answer_list[-1] == len(program_space) and len(pruning_power_per_question) > 0:
-                continue 
+            # if pruning_power.answer_list[-1] == len(program_space) and len(pruning_power_per_question) > 0:
+                # continue 
 
             # If the best concrete pruning power we have seen so far is greater than other upper bounds and concrete pruning powers,
             # This MUST be the optimal question.
@@ -66,14 +66,17 @@ class SmartLabel(QuestionSelector):
 
                 while True:
                     best_q = concrete_pruning_powers.pop(0)
-                    if best_q.answer_list[-1] == len(program_space) and len(concrete_pruning_powers) > 0:
+                    # if best_q.answer_list[-1] == len(program_space) and len(concrete_pruning_powers) > 0:
+                        # continue
+                    if best_q.expectation == len(program_space) and len(concrete_pruning_powers) > 0:
                         continue
                     optimal_q = best_q.q_index
                     optimal_q_type = best_q.q_type
-                    optimal_answer_list = best_q.answer_list
+                    # optimal_answer_list = best_q.answer_list
+                    optimal_expectation = best_q.expectation
                     break
                 
-        if optimal_answer_list[-1] == len(program_space):
+        if optimal_expectation == len(program_space):
             # It is possible that all questions have 0 pruning power, since we are sampling a subset of the program space.
             # If this happens, select a "backup" question that will prune at least 1 program.
             options = sorted([i for i, label_q in enumerate(labelling_qs) if label_q.input_id == self.backup_question_index])
@@ -97,7 +100,7 @@ class SmartLabel(QuestionSelector):
             inp = input_space[inp_id]
             skip = self.interp.ask_labelling_question(inp, attr_id, obj_id, inp_id)
             # Update conf_list 
-            inp["conf_list"] = self.interp.get_all_universes(inp["conf"])
+            inp["conf_list"] = self.interp.get_all_universes(inp)
             if skip is not None:
                 labelling_qs[:] = [other_labelling_q for other_labelling_q in labelling_qs if inp_id != other_labelling_q.input_id or obj_id != other_labelling_q.obj_id]
             if inp_id not in current_qs:
@@ -111,6 +114,7 @@ class SmartLabel(QuestionSelector):
         Compute the pruning power of an input question. 
         '''
         answer_to_freq = {}
+        answer_to_probability = {}
         # Under BCE, sample just a subset of the universes of the input
         if partial_conf:
             num_samples = self.interp.get_num_partial_conf_samples(len(q["conf_list"]))
@@ -121,14 +125,25 @@ class SmartLabel(QuestionSelector):
             conf_list = q["conf_list"]
         for prog in progs:
             answers = self.interp.eval_consistent(prog, conf_list)  
-            for answer in answers:
-                if answer not in answer_to_freq:
-                    answer_to_freq[answer] = 0
-                answer_to_freq[answer] += 1
+            for answer, probability in answers.items():
+                if answer not in answer_to_probability:
+                    answer_to_probability[answer] = []
+                answer_to_probability[answer].append(probability * 1/len(progs))
 
-        # Sort answer frequencies. A question's pruning power is proportional to how many programs its WORST answer will prune. 
-        answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
-        return PruningPowerInfo(answer_nums, q_index, "input", partial_conf)
+        expected_num_progs_pruned = 0
+        for probs in answer_to_probability.values():
+                num_progs = len(probs)
+                total_prob = sum(probs)
+                # if num_progs not in answer_to_freq:
+                #     answer_to_freq[num_progs] = 0
+                # answer_to_freq[answer] += total_prob
+                expected_num_progs_pruned += num_progs * total_prob
+
+        # sorted_answer_freqs = sorted(list(answer_to_freq.items()), reverse=True)
+        # answer_nums = [tup[0] for tup in sorted_answer_freqs]
+        # probs = [tup[1] for tup in sorted_answer_freqs]
+
+        return PruningPowerInfo(expected_num_progs_pruned, q_index, "input", partial_conf)
     
     
     def get_labelling_q_pruning_power(self, inp, obj_id, key, progs, q_index, output, partial_conf):
@@ -138,27 +153,44 @@ class SmartLabel(QuestionSelector):
 
         # Get all potential answers to the question
         answers_to_labelling_q = self.interp.get_labelling_q_answers(inp, obj_id, key)
+        label_q_probs = self.interp.get_labelling_q_probs(inp, obj_id, key)
         answer_to_freq = {}
+        answer_to_probability = {}
 
         # Consider the answers we would get to the input question for each potential answer to the labelling question.
-        for label_q_answer in answers_to_labelling_q:
+        for label_q_answer, label_q_prob in zip(answers_to_labelling_q, label_q_probs):
+            original_prob = self.interp.set_labelling_q_probs(inp, obj_id, key, label_q_answer)
             original_obj = self.interp.set_labelling_q_answer(inp["conf"], obj_id, key, label_q_answer)
-            universes = self.interp.get_all_universes(inp["conf"])
+            universes = self.interp.get_all_universes(inp)
             self.interp.reset_labelling_q(inp["conf"], obj_id, key, original_obj)
+            self.interp.reset_labelling_q_probs(inp, obj_id, key, original_prob)
             if partial_conf:
                 num_samples = self.interp.get_num_partial_conf_samples(len(universes))
                 random.seed(constants.SEED)
                 universes = random.sample(universes, num_samples)
             for prog in progs:
                 input_q_answers = self.interp.eval_consistent(prog, universes)
-                for input_q_answer in input_q_answers:
+                for input_q_answer, input_q_probability in input_q_answers.items():
                     if output is not None and output != input_q_answer:
                         continue
-                    if (input_q_answer, label_q_answer) not in answer_to_freq:
-                        answer_to_freq[(input_q_answer, label_q_answer)] = 0
-                    answer_to_freq[(input_q_answer, label_q_answer)] += 1
-        answer_nums = sorted(list(answer_to_freq.values()), reverse=True)
-        return PruningPowerInfo(answer_nums, q_index, "label", partial_conf)
+                    if (input_q_answer, label_q_answer) not in answer_to_probability:
+                        answer_to_probability[(input_q_answer, label_q_answer)] = []
+                    answer_to_probability[(input_q_answer, label_q_answer)].append(input_q_probability * label_q_prob * 1/len(progs))
+
+            expected_num_progs_pruned = 0
+            for probs in answer_to_probability.values():
+                num_progs = len(probs)
+                total_prob = sum(probs)
+                # if num_progs not in answer_to_freq:
+                    # answer_to_freq[num_progs] = 0
+                # answer_to_freq[num_progs] += total_prob 
+                expected_num_progs_pruned += num_progs * total_prob
+
+        # sorted_answer_freqs = sorted(list(answer_to_freq.items()), reverse=True)
+        # answer_nums = [tup[0] for tup in sorted_answer_freqs]
+        # probs = [tup[1] for tup in sorted_answer_freqs]
+
+        return PruningPowerInfo(expected_num_progs_pruned, q_index, "label", partial_conf)
 
 
     def get_all_qs_pruning_power(self, progs, input_qs, labelling_qs, examples, skipped_inputs, partial_conf=False):
@@ -186,9 +218,9 @@ class SmartLabel(QuestionSelector):
             inp = input_qs[label_q.input_id]
             output = None if label_q.input_id not in current_qs else self.interp.represent_output([output for asked_q, output in examples if asked_q == label_q.input_id][0])
             pruning_power = self.get_labelling_q_pruning_power(inp, label_q.obj_id, label_q.attr_id, progs, q_index, output, partial_conf)
-            if len(pruning_power.answer_list) == 0:
+            if pruning_power.expectation == 0:
                 pruning_power = self.get_labelling_q_pruning_power(inp, label_q.obj_id, label_q.attr_id, progs, q_index, output, False)
-            if len(pruning_power.answer_list) == 0:
+            if pruning_power.expectation == 0:
                 continue
             pruning_power_per_question.append(pruning_power)
 
@@ -196,26 +228,38 @@ class SmartLabel(QuestionSelector):
     
 
 class PruningPowerInfo:
-    def __init__(self, answer_list, q_index, q_type, partial_conf):
-        self.answer_list = answer_list 
+    def __init__(self, expectation, q_index, q_type, partial_conf):
+        # self.answer_list = answer_list 
         self.q_index = q_index 
         self.q_type = q_type 
         self.partial_conf = partial_conf
+        self.expectation = expectation
 
     def __lt__(x, y):
         """
         Comparing the pruning powers of 2 questions.
         """
 
-        # The case that both questions have EQUIVALENT answer lists
-        if x.answer_list[0] == y.answer_list[0]:
-            # If only ONE pruning power if partial, the complete pruning power is greater
+        if x.expectation == y.expectation:
             if x.partial_conf and not y.partial_conf:
-                return False
+                return False         
             # If both questions also have the same type, defer to index
             if x.q_type == y.q_type:
                 return x.q_index < y.q_index 
             # If the questions have different types, the label question is greater
             return x.q_type == "label"
-        # If the answer lists are different, compare and return the question with the better answer list
-        return x.answer_list[0] < y.answer_list[0]
+
+        return x.expectation < y.expectation
+
+        # # The case that both questions have EQUIVALENT answer lists
+        # if x.answer_list[0] == y.answer_list[0]:
+        #     # If only ONE pruning power if partial, the complete pruning power is greater
+        #     if x.partial_conf and not y.partial_conf:
+        #         return False
+        #     # If both questions also have the same type, defer to index
+        #     if x.q_type == y.q_type:
+        #         return x.q_index < y.q_index 
+        #     # If the questions have different types, the label question is greater
+        #     return x.q_type == "label"
+        # # If the answer lists are different, compare and return the question with the better answer list
+        # return x.answer_list[0] < y.answer_list[0]

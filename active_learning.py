@@ -69,10 +69,8 @@ class ActiveLearning(ABC):
                 new_input_question, question_type = self.question_selection.select_question(samples, self.input_space, self.labelling_qs, self.examples, skipped_inputs, self.semantics)
                 if question_type == "label":
                     num_label_qs += 1
-                    raise TypeError
                 elif question_type == "input":
                     num_input_qs += 1 
-                    raise TypeError
                 else:
                     num_label_qs += 1
                     num_input_qs += 1

@@ -65,6 +65,20 @@ def get_expressions(
     ]
     return exprs
 
+
+def fix_data(input_space):
+    str_to_bool = {
+        'true' : True,
+        'false' : False
+    }
+    for inp in input_space.values():
+        for obj in inp["conf"].values():
+            for attr in ATTRIBUTES:
+                if attr in obj:
+                    obj[attr + "_prob"] = {str_to_bool[k] : v for k, v in obj[attr + "_prob"].items()}
+    return input_space
+
+
 def get_positions() -> List[Position]:
     return [
         GetLeft(),

@@ -130,16 +130,19 @@ class Interpreter(ABC):
 
         Returns: a set of outputs
         """
-        res_set = set()
+        answers_to_probability = {}
         for inp in inp_conf_list:
+            probability = inp["prob"]
             if constraints and not self.matches_constraints(inp, constraints):
                 continue
             res = self.eval_standard(expr, inp)
             res_rep = self.represent_output(res)
-            res_set.add(res_rep)
+            if res_rep not in answers_to_probability:
+                answers_to_probability[res_rep] = 0 
+            answers_to_probability[res_rep] += probability
             if gt_output == res_rep:
                 break
-        return res_set
+        return answers_to_probability
 
 
     @abstractmethod 

@@ -1,4 +1,5 @@
 import math
+import json
 
 
 from interpreter import Interpreter
@@ -42,12 +43,20 @@ class MNISTInterpreter(Interpreter):
     def subprogs_not_equal(self, prog1, prog2, inp, semantics):
             return any([self.eval_standard(child1, inp[semantics]) != self.eval_standard(child2, inp[semantics]) for child1, child2 in zip(prog1.children, prog2.children)])
     
-    def get_all_universes(self, inp):
+    def get_all_universes(self, full_inp):
+        inp = full_inp["conf"]
+        inp_probs = full_inp["probs"]
         l = inp["img-list"] + [inp["img"]]
+        probs = inp_probs["img-list"] + [inp_probs["img"]]
         options = itertools.product(*l)
+        prob_lists = itertools.product(*probs)
         universes = []
-        for option in options:
-            universes.append({"img-list": option[:-1], "img": option[-1]})
+        for option, prob_list in zip(options, prob_lists):
+            universes.append({
+                "img-list": option[:-1], 
+                "img": option[-1],
+                "prob" : math.prod(prob_list)
+                })
         return universes
     
     def apply_model(self, self_per_rule, cross_per_rule_pair, prog1, prog2):
@@ -83,6 +92,14 @@ class MNISTInterpreter(Interpreter):
         else:
             return inp["conf"][obj_id]
 
+
+    def get_labelling_q_probs(self, inp, obj_id, key):
+        if obj_id == "img-list":
+            return inp["probs"][obj_id][key]
+        else:
+            return inp["probs"][obj_id]
+
+
     def set_labelling_q_answer(self, inp, obj_id, key, answer):
         if obj_id == "img-list":
             original_obj = inp[obj_id][key]
@@ -91,12 +108,28 @@ class MNISTInterpreter(Interpreter):
             original_obj = inp[obj_id]
             inp[obj_id] = [answer]
         return original_obj
+    
+
+    def set_labelling_q_probs(self, inp, obj_id, key, answer):
+        if obj_id == "img-list":
+            original_obj = inp["probs"][obj_id][key]
+            inp["probs"][obj_id][key] = [1]
+        else:
+            original_obj = inp["probs"][obj_id]
+            inp["probs"][obj_id] = [1]
+        return original_obj
 
     def reset_labelling_q(self, inp, obj_id, key, original_obj):
         if obj_id == "img-list":
             inp[obj_id][key] = original_obj
         else:
             inp[obj_id] = original_obj
+
+    def reset_labelling_q_probs(self, inp, obj_id, key, original_obj):
+        if obj_id == "img-list":
+            inp["probs"][obj_id][key] = original_obj
+        else:
+            inp["probs"][obj_id] = original_obj
 
 
     def get_num_partial_conf_samples(self, num_universes):
@@ -105,8 +138,10 @@ class MNISTInterpreter(Interpreter):
     def ask_labelling_question(self, inp, key, obj_id, inp_id):
         if obj_id == "img-list":
             inp["conf"][obj_id][key] = [inp['gt'][obj_id][key]]
+            inp["probs"][obj_id][key] = [1]
         else:
             inp["conf"][obj_id] = [inp["gt"][obj_id]]
+            inp["probs"][obj_id] = [1]
 
 
 def parse_helper(toks):
@@ -632,7 +667,4 @@ def pred_int_fn_backwards(goal, children, inp):
     if len(inp['img']) == 0:
         return False 
     return True
-
-
-
 

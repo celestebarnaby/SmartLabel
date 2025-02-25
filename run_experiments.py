@@ -19,6 +19,7 @@ from question_selection.smart_label_no_upper_bound import SmartLabelNoUB
 # Active learning
 from image_edit_domain.image_edit_active_learning import ImageEditActiveLearning
 from mnist_domain.mnist_active_learning import MNISTActiveLearning
+from mnist_domain.mnist_interpreter import *
 
 # Handle timeouts
 from utils import handler
@@ -335,10 +336,41 @@ def get_combined_table():
             writer.writerow(row)
 
 
+def get_questions():
+    imgs = load_mnist()
+
+    input_space = {}
+    labelling_questions = []
+    interp = MNISTInterpreter()
+    while len(input_space) < NUM_INPUTS:
+        input_imgs = [get_int(imgs) for _ in range(LIST_LENGTH)]
+        img_int = get_int(imgs)
+        inp = {"gt":{"img-list" : [get_gt(img) for img in input_imgs], "img" : get_gt(img_int)},
+               "standard" : {"img-list" : [get_standard(img) for img in input_imgs], "img" : get_standard(img_int)} ,
+               "conf" : {"img-list" : [get_conf(img) for img in input_imgs], "img" : get_conf(img_int)},
+               "probs" : {"img-list" : [get_probs(img) for img in input_imgs], "img" : get_probs(img_int)},
+               }
+        inp["conf_list"] = interp.get_all_universes(inp)
+        
+
+        labelling_questions += [(len(input_space), 'img-list', i) for i in range(len(inp['conf']['img-list'])) if len(inp['conf']['img-list'][i]) > 1]
+        if len(inp['conf']['img']) > 1:
+            labelling_questions.append((len(input_space), 'img', None))
+
+        input_space[str(len(input_space))] = inp
+
+    with open('input_space2.json', 'w') as f:
+        json.dump(input_space, f, cls=NpEncoder)
+
+
+
 if __name__ == "__main__":
     for i in range(1):
-        domains = [MNISTActiveLearning, ImageEditActiveLearning]
-        # for domain in domains:
-            # run_experiments(domain, i)
+        domains = [
+            # MNISTActiveLearning, 
+            ImageEditActiveLearning
+            ]
+        for domain in domains:
+            run_experiments(domain, i)
         get_experiment_results(domains, i)
     # get_combined_table()

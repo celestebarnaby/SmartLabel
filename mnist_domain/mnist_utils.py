@@ -2,6 +2,19 @@ import itertools
 import numpy as np
 import random
 from constants import *
+import json
+import math
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
 
 
 class Image:
@@ -58,6 +71,12 @@ def get_conf(cur_int):
     ls = itertools.product(*[get_pred_set(digit_img, PRED_SET_THRESHOLD) for digit_img in cur_int])
     return [int(sum([item * 10**i for (i, item) in enumerate(l)])) for l in ls]
 
+def get_probs(cur_int):
+    ls = itertools.product(*[get_pred_set_probs(digit_img, PRED_SET_THRESHOLD) for digit_img in cur_int])
+    # return list(ls)
+    return [math.prod(l) for l in ls]
+
+
 def get_gt(img_list):
     return sum([img.gt * 10**i for (i, img) in enumerate(img_list)])
 
@@ -73,6 +92,17 @@ def get_pred_set(img, w):
         if (-1 * val) <= w:
             pred_set.append(i)
     return pred_set
+
+def get_pred_set_probs(img, w):
+    '''
+    Computes the prediction set of a given MNIST digit w.r.t. a thresholding score w.
+    '''
+    probs = []
+    for i, val in enumerate(img.preds):
+        if (-1 * val) <= w:
+            probs.append(val)
+    return probs
+
 
 def get_int(imgs):
     '''
