@@ -104,6 +104,39 @@ class Interpreter(ABC):
             return True
         return False
     
+    # THIS IS JUST FOR USE IN THIS WEIRD ABLATION
+    def eval_cce2(
+        self,
+        expr,
+        inp,
+        gt_output  
+    ):
+        """
+        Evaluates an expr on an input w.r.t. a goal output using constrained conformal evluation (CCE)
+
+        args:
+            expr: an expression in the target DSL
+            inp: an input in the input space
+            gt_output: the goal output of expr on inp
+
+        Returns:
+            True if gt_output is contained in the prediction set output by expr on inp, and False otherwise
+        """
+        # Perform forward abstract interpretation
+        inp_conf_copy = inp["conf"].copy()
+        self.forward_ai(expr, inp_conf_copy)
+        # If the goal output is not contained in the abstract value of the expression, return False
+        if not self.gt_matches_abs_output(gt_output, expr.abs_value):
+            return True
+        constraints = {}
+        # Perform backward abstract interpretation. If expr could not possibly output the goal, return False
+        if not self.backward_ai(expr, inp_conf_copy, gt_output, gt_output, constraints):
+            return True
+        # TODO: should we instead get_all_universes here?
+        inp_conf_list = inp["conf_list"]
+        new_inp_conf_list = self.get_all_universes2({"conf": inp_conf_copy})
+        return inp_conf_list != new_inp_conf_list
+
 
     def represent_output(self, output):
         '''

@@ -59,6 +59,20 @@ class MNISTInterpreter(Interpreter):
                 })
         return universes
     
+    def get_all_universes2(self, full_inp):
+        inp = full_inp["conf"]
+        l = inp["img-list"] + [inp["img"]]
+        options = itertools.product(*l)
+        universes = []
+        for option in options:
+            universes.append({
+                "img-list": option[:-1], 
+                "img": option[-1],
+                "prob" : 1
+                })
+        return universes
+
+    
     def apply_model(self, self_per_rule, cross_per_rule_pair, prog1, prog2):
         if prog1.name != prog2.name:
             if str(sorted([prog1.name, prog2.name])) not in cross_per_rule_pair:

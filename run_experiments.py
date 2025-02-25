@@ -15,6 +15,7 @@ from question_selection.samplesy import SampleSy
 from question_selection.select_random import SelectRandom
 from question_selection.smart_label import SmartLabel
 from question_selection.smart_label_no_upper_bound import SmartLabelNoUB
+from question_selection.pldi_reviewer_d_request import PLDIReviewerDRequest
 
 # Active learning
 from image_edit_domain.image_edit_active_learning import ImageEditActiveLearning
@@ -63,7 +64,8 @@ def run_experiments(domain, seed_inc):
         # # SampleSy (baseline)
         # ("standard", SampleSy),
         # # SmartLabel (our technique)
-        ("CCE", SmartLabel),
+        # ("CCE", SmartLabel),
+        ("CCE", PLDIReviewerDRequest)
         # # CCE-NoAbs (ablation)
         # ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
@@ -367,7 +369,7 @@ def get_questions():
 if __name__ == "__main__":
     for i in range(1):
         domains = [
-            # MNISTActiveLearning, 
+            MNISTActiveLearning, 
             ImageEditActiveLearning
             ]
         for domain in domains:

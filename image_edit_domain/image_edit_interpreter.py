@@ -790,6 +790,32 @@ class ImageEditInterpreter(Interpreter):
             universe["prob"] = prob
         return all_universes
     
+    def get_all_universes2(self, full_inp):
+        inp_conf = full_inp["conf"]
+        inp_conf_copy = {}
+        for key, val in inp_conf.items():
+            inp_conf_copy[key] = [item for item in self.get_all_versions_of_object(val)]
+        keys = list(inp_conf_copy.keys())
+        vals = list(inp_conf_copy.values())
+        all_lists = list(itertools.product(*vals))
+        all_universes = [{keys[i]: l[i] for i in range(len(l)) if l[i] is not None} for l in all_lists]
+        for universe in all_universes:
+            prob = 1
+            for obj_id, obj in inp_conf.items():
+                if obj_id in universe and obj["Flag"] == False:
+                    prob *= obj["Flag_prob"]
+                elif obj["Flag"] == False:
+                    prob *= (1 - obj["Flag_prob"])
+                    # not sure about this
+                    continue
+                for attr in ATTRIBUTES:
+                    if attr in universe[obj_id] and len(obj[attr]) == 2:
+                        prob *= inp_conf[obj_id][f"{attr}_prob"][universe[obj_id][attr]]
+                    # else:
+                        # prob *= abs_img_conf[obj_id][key + "_prob"][False]
+            universe["prob"] = prob
+        return all_universes
+    
 
     def get_all_versions_of_object(self, obj):
         versions = []
@@ -893,7 +919,9 @@ class ImageEditInterpreter(Interpreter):
         if key == "Flag":
             # If the object DOES exist in ground truth, we set flag to True
             abs_img["conf"][obj_id]["Flag"] = True 
+            abs_img["conf"][obj_id]["Flag_prob"] = 1
         else:
             # If the key is a specific attribute, we set the conformal prediction to the correct value
             gt_val = abs_img["gt"][gt_id][key] if key in abs_img["gt"][gt_id] else False
             abs_img["conf"][obj_id][key] = [gt_val]
+            abs_img["conf"][obj_id][f"{key}_prob"] = {gt_val : 1, not gt_val :0 }
