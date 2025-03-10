@@ -337,6 +337,28 @@ def get_combined_table():
         for row in rows:
             writer.writerow(row)
 
+def get_questions2():
+    imgs = load_mnist()
+    new_input_space = {}
+    interp = MNISTInterpreter()
+    with open("./mnist_domain/input_space.json", 'r') as f:
+        input_space = json.load(f)
+    for inp_id, inp in input_space.items():
+        new_img_list, new_img = get_new_img_list(inp, imgs)
+        new_inp = {"gt":{"img-list" : [get_gt([img]) for img in new_img_list], "img" : get_gt([new_img])},
+               "standard" : {"img-list" : [get_standard([img]) for img in new_img_list], "img" : get_standard([new_img])} ,
+               "conf" : {"img-list" : [get_conf([img]) for img in new_img_list], "img" : get_conf([new_img])},
+               "probs" : {"img-list" : [get_probs([img]) for img in new_img_list], "img" : get_probs([new_img])},
+               }
+        new_inp["conf_list"] = interp.get_all_universes(new_inp)
+        
+        # labelling_questions += [(len(new_input_space), 'img-list', i) for i in range(len(new_inp['conf']['img-list'])) if len(new_inp['conf']['img-list'][i]) > 1]
+        # if len(new_inp['conf']['img']) > 1:
+            # labelling_questions.append((len(new_input_space), 'img', None))
+        new_input_space[inp_id] = new_inp
+    with open('input_space5.json', 'w') as f:
+        json.dump(new_input_space, f, cls=NpEncoder)
+
 
 def get_questions():
     imgs = load_mnist()

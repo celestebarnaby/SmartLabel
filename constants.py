@@ -50,7 +50,7 @@ MAX_DIGIT = 10
 MNIST_NUM_PARTIAL_SAMPLES = 1
 
 MNIST_IMGS_DIR = "./mnist_domain/mnist_dataset/svhn.csv"
-MNIST_QUESTIONS_DIR = "./mnist_domain/input_space2.json"
+MNIST_QUESTIONS_DIR = "./mnist_domain/input_space_PROBS.json"
 
 SEED = 35
 NUM_SEEDS = 5

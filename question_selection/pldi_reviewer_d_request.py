@@ -31,10 +31,10 @@ class PLDIReviewerDRequest(QuestionSelector):
             for inp_id, inp in input_space.items():
                 if inp_id in skipped_inputs:
                     continue
-                answers = self.interp.eval_consistent(prog, inp["conf_list"])
+                answers = self.interp.eval_consistent2(prog.duplicate(), inp["conf_list"])
                 for answer in answers:
                     # this means something was pruned from a prediction set during backward AI
-                    if self.interp.eval_cce2(prog, inp, answer):
+                    if self.interp.eval_cce2(prog.duplicate(), inp, answer):
                         relevant_qs = [label_q for label_q in labelling_qs if inp_id == label_q.input_id]
                         if len(relevant_qs) == 0:
                             if inp_id in current_qs:
@@ -49,6 +49,10 @@ class PLDIReviewerDRequest(QuestionSelector):
                             selected_inp_id = selected_label_q.input_id 
                             obj_id = selected_label_q.obj_id 
                             key = selected_label_q.attr_id 
+                            print("selected question")
+                            print(selected_inp_id)
+                            print(obj_id)
+                            print(key)
                             selected_inp = input_space[selected_inp_id] 
                             skip = self.interp.ask_labelling_question(selected_inp, key, obj_id, selected_inp_id)
                             selected_inp["conf_list"] = self.interp.get_all_universes2(selected_inp)

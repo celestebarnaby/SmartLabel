@@ -112,6 +112,15 @@ def get_int(imgs):
     for _ in range(DIGITS_PER_ITEM):
         digit_list.append(random.choice(imgs))
     return digit_list
+
+def get_new_img_list(inp, imgs):
+    img_list = []
+    for i in range(3):
+        possible_imgs = [img for img in imgs if get_gt([img]) == inp['gt']["img-list"][i] and get_standard([img]) == inp['standard']["img-list"][i] and get_conf([img]) == inp['conf']["img-list"][i]]
+        img_list.append(random.choice(possible_imgs))
+    possible_imgs = [img for img in imgs if get_gt([img]) == inp['gt']["img"] and get_standard([img]) == inp['standard']["img"] and get_conf([img]) == inp['conf']["img"]]
+    img = random.choice(possible_imgs)
+    return img_list, img
     
 
 def join(pred1, pred2):

@@ -178,6 +178,33 @@ class Interpreter(ABC):
         return answers_to_probability
 
 
+
+    def eval_consistent2(
+            self,
+            expr, 
+            inp_conf_list, 
+            gt_output=None, 
+            constraints={}):
+        """
+        Computes the set of outputs consistent with the constraints for a given expression and input
+
+        Args:
+            expr: an expression in the target DSL
+            inp_conf_list: the conformal list of in input
+            gt_output (optional): the goal output
+            constraints (optional): a set of constraints on the values of the neural components of the input
+
+        Returns: a set of outputs
+        """
+        answers = []
+        for inp in inp_conf_list:
+            if constraints and not self.matches_constraints(inp, constraints):
+                continue
+            res = self.eval_standard(expr, inp)
+            answers.append(res)
+        return answers
+
+
     @abstractmethod 
     def subprogs_not_equal(self, prog1, prog2, inp):
         '''
