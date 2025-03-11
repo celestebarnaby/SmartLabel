@@ -443,7 +443,7 @@ def get_questions_from_img_lists(img_lists, interp, delta):
     return input_space
 
 
-def make_scalability_experiment_plot(domain, deltas, task_type=""):
+def make_scalability_experiment_plot(domain, deltas, task_type=None):
 
     pred_set_size_to_avg_runtime = {}
     first_threshold = True
@@ -540,12 +540,12 @@ def make_scalability_experiment_plot(domain, deltas, task_type=""):
     plt.ylabel('Avg. User Interaction Time (s)')
 
     task_type_to_title = {
-        '' : 'PixelList',
-        'Search' : 'Image Search',
+        None : 'PixelList',
+        'Search' : 'ImageSearch',
         'Edit' : 'ImageEdit'
     }
 
-    plt.title('PixelList' if domain == MNISTActiveLearning else "ImageEdit")
+    plt.title(task_type_to_title[task_type])
 
     plt.legend()
     plt.tight_layout()
@@ -555,7 +555,7 @@ def make_scalability_experiment_plot(domain, deltas, task_type=""):
 if __name__ == "__main__":
     img_lists = get_img_lists(load=True)
     mnist_deltas = [
-        .005,
+        # .005,
         .00475,
         .0045,
         .00425,
@@ -566,10 +566,10 @@ if __name__ == "__main__":
         # interp = MNISTInterpreter()
         # input_questions = get_questions_from_img_lists(img_lists, interp, delta)
         # run_experiments(MNISTActiveLearning, input_questions, delta, None)
-    # make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
+    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
     image_edit_deltas = [
-        .45,
+        # .45,
         .425,
         .4,
         .375,
@@ -580,5 +580,5 @@ if __name__ == "__main__":
     saved_program_spaces = {}
     # for i, delta in enumerate(image_edit_deltas):
         # run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
-    # for task_type in ["Edit", "Search"]:
-    make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas)    
+    for task_type in ["Edit", "Search"]:
+        make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas, task_type)    
