@@ -2,7 +2,7 @@ from image_edit_domain.image_edit_dsl import *
 from benchmark import Benchmark
 
 # THESE ARE THE IMAGEEYE BENCHMARKS!!
-image_edit_benchmarks = benchmarks = [
+image_edit_benchmarks = [
     Benchmark(
         Map(
             Union([IsObject("Glasses"), IsSmiling(), EyesOpen()]),

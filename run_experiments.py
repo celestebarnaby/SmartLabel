@@ -18,6 +18,7 @@ from question_selection.smart_label_no_upper_bound import SmartLabelNoUB
 
 # Active learning
 from image_edit_domain.image_edit_active_learning import ImageEditActiveLearning
+from image_search_domain.image_search_active_learning import ImageSearchActiveLearning
 from mnist_domain.mnist_active_learning import MNISTActiveLearning
 
 # Handle timeouts
@@ -56,7 +57,7 @@ def run_experiments(domain, seed_inc):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        ("standard", LearnSy),
+        # ("standard", LearnSy),
         # # SampleSy (baseline)
         ("standard", SampleSy),
         # # SmartLabel (our technique)
@@ -64,9 +65,9 @@ def run_experiments(domain, seed_inc):
         # # CCE-NoAbs (ablation)
         ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
-        ("CCE", SmartLabelNoUB),
+        # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        ("CCE", SelectRandom),
+        # ("CCE", SelectRandom),
     ] 
 
     for semantics, question_selection in test_settings:
@@ -298,7 +299,7 @@ def get_combined_table():
         "# Benchmarks Solved",
         "Avg. Time per Round of Interaction"
     ]
-    for i in range(NUM_SEEDS):
+    for i in range(1):
         data_dict = csv_to_dict(f"./output/table_data_{i}.csv", "")
         for key in keys:
             if key in {"Domain", "Test Setting"}:
@@ -318,9 +319,10 @@ def get_combined_table():
 
 
 if __name__ == "__main__":
-    for i in range(NUM_SEEDS):
-        domains = [MNISTActiveLearning, ImageEditActiveLearning]
-        # for domain in domains:
-            # run_experiments(domain, i)
+    for i in range(1):
+        # domains = [MNISTActiveLearning, ImageEditActiveLearning]
+        domains = [ImageSearchActiveLearning]
+        for domain in domains:
+            run_experiments(domain, i)
         get_experiment_results(domains, i)
     get_combined_table()

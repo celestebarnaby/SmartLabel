@@ -4,10 +4,10 @@ import itertools
 
 from interpreter import Interpreter
 
-from image_edit_domain.image_edit_dsl import *
-from image_edit_domain.image_edit_utils import *
+from image_search_domain.image_search_dsl import *
+from image_search_domain.image_search_utils import *
 
-class ImageEditInterpreter(Interpreter):
+class ImageSearchInterpreter(Interpreter):
 
     def forward_ai(
             self, 
@@ -24,20 +24,10 @@ class ImageEditInterpreter(Interpreter):
                     objs_over.add(obj_id)
                     if obj_abs_img["Flag"]:
                         objs_under.add(obj_id)
-        # elif isinstance(expr, MatchesWord):
-        #     objs_under = set()
-        #     objs_over = set()
-        #     for (obj_id, obj_abs_img) in abs_img.items():
-        #         if obj_abs_img["Label"] == "Text" and obj_abs_img["Text"] == expr.word:
-        #             objs_over.add(obj_id)
-        #             if obj_abs_img["Flag"]:
-        #                 objs_under.add(obj_id)
         elif (
             isinstance(expr, IsSmiling)
             or isinstance(expr, EyesOpen)
             or isinstance(expr, MouthOpen)
-            # or isinstance(expr, IsPrice)
-            # or isinstance(expr, IsPhoneNumber)
         ):
             objs_under = {obj for obj in abs_img if str(expr) in abs_img[obj] and abs_img[obj][str(expr)] == [True] and abs_img[obj]["Flag"]}
             objs_over = {obj for obj in abs_img if str(expr) in abs_img[obj] and (abs_img[obj][str(expr)] == True or (isinstance(abs_img[obj][str(expr)], list) and True in abs_img[obj][str(expr)]))}
@@ -113,38 +103,6 @@ class ImageEditInterpreter(Interpreter):
                     # Update our constraints to specify that the object MUST NOT exist
                     constraints[obj_id]["Exists"] = False 
             return True
-        # elif isinstance(expr, MatchesWord):
-        #     # These are the objects that the leaf node MUST output
-        #     for obj_id in goal_under:
-        #         # If the image doesn't contain this object, or the object has different text than the expression, return False
-        #         if obj_id not in abs_img or abs_img[obj_id]["Label"] != "Text" or abs_img[obj_id]["Text"] != expr.word:
-        #             return False
-        #         if obj_id not in constraints:
-        #             constraints[obj_id] = {}
-
-        #         # If our constraints specify that this object CANNOT be output, return False
-        #         if "Exists" in constraints[obj_id] and not constraints[obj_id]["Exists"]:
-        #             return False
-                
-        #         # Update constraints to specify that the object MUST exists
-        #         constraints[obj_id]["Exists"] = True
-
-        #     # These are the objects that MUST NOT be output by the leaf node
-        #     for obj_id in set(abs_img.keys()) - goal_over:
-        #         # If the lead node WILL output the object, return False
-        #         if abs_img[obj_id]["Flag"] == True and abs_img[obj_id]['Label'] == "Text" and abs_img[obj_id]["Text"] == expr.word:
-        #             return False
-        #         if abs_img[obj_id]["Label"] == "Text" and abs_img[obj_id]["Text"] == expr.word:
-        #             if obj_id not in constraints:
-        #                 constraints[obj_id] = {}
-
-        #             # If our constraints specify that the object MUST be output, return False
-        #             if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"]:
-        #                 return False
-                    
-        #             # Update our constraints to specify that the object MUST NOT exist
-        #             constraints[obj_id]["Exists"] = False 
-        #     return True
         # Leaf nodes for specific attributes of human faces. This case is similar to the IsObject case.
         elif (
             isinstance(expr, IsSmiling)
@@ -242,7 +200,7 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(expr, Map):
             sub_expr_under = set()
             sub_expr_over = set(abs_img.keys())
-            rest_under = goal_under 
+            rest_under = set() if isinstance(expr.position, GetAround) or isinstance(expr.position, GetNotAround) else goal_under 
             rest_over = set(abs_img.keys())
             if not update_abs_output(expr.expression, sub_expr_under, sub_expr_over):
                 return False
@@ -308,6 +266,15 @@ class ImageEditInterpreter(Interpreter):
                         cur_obj_id = obj_id
                 if cur_obj_id is not None and cur_obj_id in rest_under:
                     mapped_objs_under.add(cur_obj_id)
+        elif isinstance(prog.position, GetAround):
+            if len(rest_over) > 0 and len(objs_over) > 0:
+                mapped_objs_over = rest_over.union(objs_over)
+            if len(rest_under) > 0 and len(objs_under) > 0:
+                mapped_objs_under = rest_under.union(objs_under)
+        elif isinstance(prog.position, GetNotAround):
+            mapped_objs_over = objs_over
+            if len(rest_over) == 0 and len(objs_under) > 0:
+                mapped_objs_under = objs_under 
         elif isinstance(prog.position, GetRight):
             for target_obj_id in objs_over:
                 target_left, target_top, target_right, target_bottom = abs_img[target_obj_id]["bbox"]
@@ -571,6 +538,15 @@ class ImageEditInterpreter(Interpreter):
                         cur_obj_id = obj_id
                 if cur_obj_id is not None:
                     mapped_objs.add(cur_obj_id)
+        elif isinstance(map_expr.position, GetAround):
+            # if there is at least one object in BOTH sets, add everything from both sets
+            if len(rest) > 0 and len(objs) > 0:
+                mapped_objs = rest.union(objs)
+            # otherwise, return empty set
+        elif isinstance(map_expr.position, GetNotAround):
+            # if the restriction is EMPTY and the target set is NOT, add everything from target set
+            if len(rest) == 0 and len(objs) > 0:
+                mapped_objs = objs
         elif isinstance(map_expr.position, GetLeft):
             for target_obj_id in objs:
                 target_left, target_top, target_right, target_bottom = abs_img[target_obj_id]["bbox"]
