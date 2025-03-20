@@ -17,6 +17,7 @@ class ImageEditActiveLearning(ActiveLearning):
     def __init__(self, semantics, question_selection):
         super().__init__(semantics, question_selection)
         self.dataset_to_program_space = {}
+        self.max_prog_space_size = IMAGE_EDIT_INIT_PROG_SPACE_SIZE
 
     def set_benchmarks(self):
         self.benchmarks = image_edit_benchmarks 
@@ -63,7 +64,7 @@ class ImageEditActiveLearning(ActiveLearning):
         else:
             complete_program_space = self.synth.synthesize([])
             self.dataset_to_program_space[benchmark.dataset_name] = complete_program_space
-        program_space = random.sample(complete_program_space, min(len(complete_program_space), IMAGE_EDIT_INIT_PROG_SPACE_SIZE))
+        program_space = random.sample(complete_program_space, min(len(complete_program_space), self.max_prog_space_size))
         initial_synth_start_time = time.perf_counter()
         program_space = self.synth.check_programs(program_space, [(self.input_space[q], a) for q, a in self.examples])
         initial_synthesis_time = time.perf_counter() - initial_synth_start_time

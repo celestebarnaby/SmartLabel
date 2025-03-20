@@ -19,6 +19,7 @@ from question_selection.pldi_reviewer_d_request import PLDIReviewerDRequest
 
 # Active learning
 from image_edit_domain.image_edit_active_learning import ImageEditActiveLearning
+from image_search_domain.image_search_active_learning import ImageSearchActiveLearning
 from mnist_domain.mnist_active_learning import MNISTActiveLearning
 from mnist_domain.mnist_interpreter import *
 
@@ -141,13 +142,16 @@ def run_experiments(domain, seed_inc):
             f.write(s.getvalue())
 
 
-def csv_to_dict(filename):
+def csv_to_dict(filename, task_type):
     data_dict = {}
     with open(filename, mode='r') as file:
         reader = csv.reader(file)
         keys = next(reader)  # Read the first row as keys
         print(filename)
         for row in reader:
+            row = [item.strip() for item in row]
+            # if "Type" in keys and task_type not in row:
+                # continue
             for key, value in zip(keys, row):
                 if key not in data_dict:
                     data_dict[key] = []
@@ -175,112 +179,99 @@ def get_experiment_results(domains, seed_inc):
 
     # Create a table that has the results presented in tables 1, 2, 3 in the paper.
     for domain in domains:
-        setting_to_data_per_domain = {}
-        data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_{seed_inc}.csv")
+        for task_type in [""] if domain.__name__ == "ImageEditActiveLearning" else [""]:
+            setting_to_data_per_domain = {}
+            data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_{seed_inc}.csv", task_type)
 
-        for (
-            semantics, 
-            question_selector, 
-            time_per_round, 
-            num_label_qs,
-            num_input_qs,
-            init_time, 
-            correct, 
-            num_initial_programs, 
-            num_final_programs, 
-            input_space_size,
-            question_space_size,
-            answer_space_size,
-            avg_pred_set_size,
-            ) in zip(
-                data_dict["Semantics"], 
-                data_dict["Question Selector"], 
-                data_dict["Time Per Round"], 
-                data_dict["# Label Questions"],
-                data_dict["# Input Questions"],
-                data_dict["Initial Synthesis Time"], 
-                data_dict["Correct?"], 
-                data_dict["Initial Program Space Size"], 
-                data_dict["Final Program Space Size"],
-                data_dict["Input Space Size"],
-                data_dict["Question Space Size"],
-                data_dict["Avg. Answer Space Size per Question"],
-                data_dict["Avg. Prediction Set Size"],
-                ):
-            key = "{}_{}".format(semantics, question_selector)
-            if key not in setting_to_data_per_domain:
-                setting_to_data_per_domain[key] = {
-                    "runtimes" : [],
-                    "num_rounds" : [],
-                    "num_label_qs" : [],
-                    "num_input_qs" : [],
-                    "num_init_progs" : [],
-                    "num_final_progs" : [],
-                    "input_space_sizes" : [],
-                    "question_space_sizes" : [],
-                    "avg_answer_space_sizes" : [],
-                    "avg_pred_set_sizes" : [],
-                    "correct" : 0 
-                } 
-            if key not in setting_to_data_overall:
-                setting_to_data_overall[key] = {
-                    "runtimes" : [],
-                    "num_rounds" : [],
-                    "num_label_qs" : [],
-                    "num_input_qs" : [],
-                    "num_init_progs" : [],
-                    "num_final_progs" : [],
-                    "input_space_sizes" : [],
-                    "question_space_sizes" : [],
-                    "avg_answer_space_sizes" : [],
-                    "avg_pred_set_sizes" : [],
-                    "correct" : 0          
-                } 
-            time_per_round = ast.literal_eval(time_per_round)
-            setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
-            setting_to_data_per_domain[key]["num_label_qs"].append(int(num_label_qs))
-            setting_to_data_per_domain[key]["num_input_qs"].append(int(num_input_qs))
-            setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
-            setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
-            setting_to_data_per_domain[key]["input_space_sizes"].append(int(input_space_size))
-            setting_to_data_per_domain[key]["question_space_sizes"].append(int(question_space_size))
-            setting_to_data_per_domain[key]["avg_answer_space_sizes"].append(float(answer_space_size))
-            setting_to_data_per_domain[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
-            setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
+            for (
+                semantics, 
+                question_selector, 
+                time_per_round, 
+                init_time, 
+                correct, 
+                num_initial_programs, 
+                num_final_programs, 
+                input_space_size,
+                question_space_size,
+                answer_space_size,
+                avg_pred_set_size,
+                ) in zip(
+                    data_dict["Semantics"], 
+                    data_dict["Question Selector"], 
+                    data_dict["Time Per Round"], 
+                    data_dict["Initial Synthesis Time"], 
+                    data_dict["Correct?"], 
+                    data_dict["Initial Program Space Size"], 
+                    data_dict["Final Program Space Size"],
+                    data_dict["Input Space Size"],
+                    data_dict["Question Space Size"],
+                    data_dict["Avg. Answer Space Size per Question"],
+                    data_dict["Avg. Prediction Set Size"],
+                    ):
+                key = f"{semantics}_{question_selector}"
+                if key not in setting_to_data_per_domain:
+                    setting_to_data_per_domain[key] = {
+                        "runtimes" : [],
+                        "num_rounds" : [],
+                        "num_init_progs" : [],
+                        "num_final_progs" : [],
+                        "input_space_sizes" : [],
+                        "question_space_sizes" : [],
+                        "avg_answer_space_sizes" : [],
+                        "avg_pred_set_sizes" : [],
+                        "correct" : 0 
+                    } 
+                if key not in setting_to_data_overall:
+                    setting_to_data_overall[key] = {
+                        "runtimes" : [],
+                        "num_rounds" : [],
+                        "num_init_progs" : [],
+                        "num_final_progs" : [],
+                        "input_space_sizes" : [],
+                        "question_space_sizes" : [],
+                        "avg_answer_space_sizes" : [],
+                        "avg_pred_set_sizes" : [],
+                        "correct" : 0          
+                    } 
+                time_per_round = ast.literal_eval(time_per_round)
+                setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
+                setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
+                setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
+                setting_to_data_per_domain[key]["input_space_sizes"].append(int(input_space_size))
+                setting_to_data_per_domain[key]["question_space_sizes"].append(int(question_space_size))
+                setting_to_data_per_domain[key]["avg_answer_space_sizes"].append(float(answer_space_size))
+                setting_to_data_per_domain[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
+                setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
 
-            setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
-            setting_to_data_overall[key]["num_label_qs"].append(int(num_label_qs))
-            setting_to_data_overall[key]["num_input_qs"].append(int(num_input_qs))
-            setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
-            setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
-            setting_to_data_overall[key]["input_space_sizes"].append(int(input_space_size))
-            setting_to_data_overall[key]["question_space_sizes"].append(int(question_space_size))
-            setting_to_data_overall[key]["avg_answer_space_sizes"].append(float(answer_space_size))
-            setting_to_data_overall[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
-            setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
+                setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
+                setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
+                setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
+                setting_to_data_overall[key]["input_space_sizes"].append(int(input_space_size))
+                setting_to_data_overall[key]["question_space_sizes"].append(int(question_space_size))
+                setting_to_data_overall[key]["avg_answer_space_sizes"].append(float(answer_space_size))
+                setting_to_data_overall[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
+                setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
 
-            for i, round_time in enumerate(time_per_round):
-                if i == 0:
-                    round_time += float(init_time)
-                setting_to_data_per_domain[key]["runtimes"].append(round_time)
-                setting_to_data_overall[key]["runtimes"].append(round_time)
+                for i, round_time in enumerate(time_per_round):
+                    if i == 0:
+                        round_time += float(init_time)
+                    setting_to_data_per_domain[key]["runtimes"].append(round_time)
+                    setting_to_data_overall[key]["runtimes"].append(round_time)
 
-        for key, val in setting_to_data_per_domain.items():
-            rows.append([
-                domain.__name__,
-                key,
-                np.mean(val["num_rounds"]),
-                np.mean(val["num_label_qs"]),
-                np.mean(val["num_input_qs"]),
-                np.mean(val["num_init_progs"]),
-                np.mean(val["num_final_progs"]),
-                np.mean(val["input_space_sizes"]),
-                np.mean(val["question_space_sizes"]),
-                np.mean(val["avg_answer_space_sizes"]),
-                np.mean(val["avg_pred_set_sizes"]),
-                val["correct"],
-                np.mean(val["runtimes"])
-            ])
+            for key, val in setting_to_data_per_domain.items():
+                rows.append([
+                    f"{domain.__name__}{task_type}",
+                    key,
+                    np.mean(val["num_rounds"]),
+                    np.mean(val["num_init_progs"]),
+                    np.mean(val["num_final_progs"]),
+                    np.mean(val["input_space_sizes"]),
+                    np.mean(val["question_space_sizes"]),
+                    np.mean(val["avg_answer_space_sizes"]),
+                    np.mean(val["avg_pred_set_sizes"]),
+                    val["correct"],
+                    np.mean(val["runtimes"])
+                ])
 
     for key, val in setting_to_data_overall.items():
         rows.append([
@@ -320,7 +311,7 @@ def get_combined_table():
         "Avg. Time per Round of Interaction"
     ]
     for i in range(NUM_SEEDS):
-        data_dict = csv_to_dict(f"./output/table_data_{i}.csv")
+        data_dict = csv_to_dict(f"./output/table_data_{i}.csv", "")
         for key in keys:
             if key in {"Domain", "Test Setting"}:
                 overall_data_dict[key] = data_dict[key] 
@@ -389,12 +380,9 @@ def get_questions():
 
 
 if __name__ == "__main__":
-    for i in range(1):
-        domains = [
-            MNISTActiveLearning, 
-            ImageEditActiveLearning
-            ]
-        for domain in domains:
-            run_experiments(domain, i)
-        get_experiment_results(domains, i)
-    # get_combined_table()
+    for i in range(NUM_SEEDS):
+        domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
+        # for domain in domains:
+            # run_experiments(domain, i)
+        # get_experiment_results(domains, i)
+    get_combined_table()

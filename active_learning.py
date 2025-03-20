@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from constants import *
 
-from image_edit_domain.image_edit_dsl import *
+# from image_search_domain.image_search_dsl import *
 from utils import *
 
 class ActiveLearning(ABC):

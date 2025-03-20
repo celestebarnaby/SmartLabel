@@ -4,10 +4,10 @@ import itertools
 
 from interpreter import Interpreter
 
-from image_edit_domain.image_edit_dsl import *
-from image_edit_domain.image_edit_utils import *
+from image_search_domain.image_search_dsl import *
+from image_search_domain.image_search_utils import *
 
-class ImageEditInterpreter(Interpreter):
+class ImageSearchInterpreter(Interpreter):
 
     def forward_ai(
             self, 
@@ -20,26 +20,14 @@ class ImageEditInterpreter(Interpreter):
             objs_under = set()
             objs_over = set()
             for (obj_id, obj_abs_img) in abs_img.items():
-                if obj_id == "prob":
-                    continue
                 if obj_abs_img["Label"] == expr.obj:
                     objs_over.add(obj_id)
                     if obj_abs_img["Flag"]:
                         objs_under.add(obj_id)
-        # elif isinstance(expr, MatchesWord):
-        #     objs_under = set()
-        #     objs_over = set()
-        #     for (obj_id, obj_abs_img) in abs_img.items():
-        #         if obj_abs_img["Label"] == "Text" and obj_abs_img["Text"] == expr.word:
-        #             objs_over.add(obj_id)
-        #             if obj_abs_img["Flag"]:
-        #                 objs_under.add(obj_id)
         elif (
             isinstance(expr, IsSmiling)
             or isinstance(expr, EyesOpen)
             or isinstance(expr, MouthOpen)
-            # or isinstance(expr, IsPrice)
-            # or isinstance(expr, IsPhoneNumber)
         ):
             objs_under = {obj for obj in abs_img if str(expr) in abs_img[obj] and abs_img[obj][str(expr)] == [True] and abs_img[obj]["Flag"]}
             objs_over = {obj for obj in abs_img if str(expr) in abs_img[obj] and (abs_img[obj][str(expr)] == True or (isinstance(abs_img[obj][str(expr)], list) and True in abs_img[obj][str(expr)]))}
@@ -115,38 +103,6 @@ class ImageEditInterpreter(Interpreter):
                     # Update our constraints to specify that the object MUST NOT exist
                     constraints[obj_id]["Exists"] = False 
             return True
-        # elif isinstance(expr, MatchesWord):
-        #     # These are the objects that the leaf node MUST output
-        #     for obj_id in goal_under:
-        #         # If the image doesn't contain this object, or the object has different text than the expression, return False
-        #         if obj_id not in abs_img or abs_img[obj_id]["Label"] != "Text" or abs_img[obj_id]["Text"] != expr.word:
-        #             return False
-        #         if obj_id not in constraints:
-        #             constraints[obj_id] = {}
-
-        #         # If our constraints specify that this object CANNOT be output, return False
-        #         if "Exists" in constraints[obj_id] and not constraints[obj_id]["Exists"]:
-        #             return False
-                
-        #         # Update constraints to specify that the object MUST exists
-        #         constraints[obj_id]["Exists"] = True
-
-        #     # These are the objects that MUST NOT be output by the leaf node
-        #     for obj_id in set(abs_img.keys()) - goal_over:
-        #         # If the lead node WILL output the object, return False
-        #         if abs_img[obj_id]["Flag"] == True and abs_img[obj_id]['Label'] == "Text" and abs_img[obj_id]["Text"] == expr.word:
-        #             return False
-        #         if abs_img[obj_id]["Label"] == "Text" and abs_img[obj_id]["Text"] == expr.word:
-        #             if obj_id not in constraints:
-        #                 constraints[obj_id] = {}
-
-        #             # If our constraints specify that the object MUST be output, return False
-        #             if "Exists" in constraints[obj_id] and constraints[obj_id]["Exists"]:
-        #                 return False
-                    
-        #             # Update our constraints to specify that the object MUST NOT exist
-        #             constraints[obj_id]["Exists"] = False 
-        #     return True
         # Leaf nodes for specific attributes of human faces. This case is similar to the IsObject case.
         elif (
             isinstance(expr, IsSmiling)
@@ -244,7 +200,7 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(expr, Map):
             sub_expr_under = set()
             sub_expr_over = set(abs_img.keys())
-            rest_under = goal_under 
+            rest_under = set() if isinstance(expr.position, GetAround) or isinstance(expr.position, GetNotAround) else goal_under 
             rest_over = set(abs_img.keys())
             if not update_abs_output(expr.expression, sub_expr_under, sub_expr_over):
                 return False
@@ -276,8 +232,6 @@ class ImageEditInterpreter(Interpreter):
                 ]["bbox"]
                 target_x = abs_img[target_obj_id]["center"][0]
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest_over:
@@ -295,8 +249,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_x = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -314,13 +266,20 @@ class ImageEditInterpreter(Interpreter):
                         cur_obj_id = obj_id
                 if cur_obj_id is not None and cur_obj_id in rest_under:
                     mapped_objs_under.add(cur_obj_id)
+        elif isinstance(prog.position, GetAround):
+            if len(rest_over) > 0 and len(objs_over) > 0:
+                mapped_objs_over = rest_over.union(objs_over)
+            if len(rest_under) > 0 and len(objs_under) > 0:
+                mapped_objs_under = rest_under.union(objs_under)
+        elif isinstance(prog.position, GetNotAround):
+            mapped_objs_over = objs_over
+            if len(rest_over) == 0 and len(objs_under) > 0:
+                mapped_objs_under = objs_under 
         elif isinstance(prog.position, GetRight):
             for target_obj_id in objs_over:
                 target_left, target_top, target_right, target_bottom = abs_img[target_obj_id]["bbox"]
                 target_x = abs_img[target_obj_id]["center"][0]
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -340,8 +299,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_x = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -364,8 +321,6 @@ class ImageEditInterpreter(Interpreter):
                 target_left, target_top, target_right, target_bottom = abs_img[target_obj_id]["bbox"]
                 target_y = abs_img[target_obj_id]["center"][1]
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest_over:
@@ -383,8 +338,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_y = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -407,8 +360,6 @@ class ImageEditInterpreter(Interpreter):
                 target_left, target_top, target_right, target_bottom = abs_img[target_obj_id]["bbox"]
                 target_y = abs_img[target_obj_id]["center"][1]
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest_over:
@@ -426,8 +377,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_y = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest_over:
@@ -446,8 +395,6 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(prog.position, GetContains):
             for target_obj_id in objs_over:
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest_over:
@@ -463,8 +410,6 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(prog.position, GetIsContained):
             for target_obj_id in objs_over:
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest_over:
@@ -494,8 +439,6 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(expr, IsObject):
             objs = set()
             for (obj_id, obj_abs_img) in abs_img.items():
-                if obj_id == "prob":
-                    continue
                 if obj_abs_img["Label"] == expr.obj:
                     objs.add(obj_id)
             res = objs
@@ -528,12 +471,12 @@ class ImageEditInterpreter(Interpreter):
             # or isinstance(expr, IsPrice)
             # or isinstance(expr, IsPhoneNumber)
         ):
-            res = {obj for obj in abs_img if obj != "prob" and  str(expr) in abs_img[obj] and abs_img[obj][str(expr)]}
+            res = {obj for obj in abs_img if str(expr) in abs_img[obj] and abs_img[obj][str(expr)]}
         else:
             # TODO: error handling
             print(expr)
             raise Exception
-        return {obj for obj in res if obj != "prob"}
+        return res
 
 
     def eval_map_standard(
@@ -556,8 +499,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_y = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest:
@@ -580,8 +521,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_y = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -599,6 +538,15 @@ class ImageEditInterpreter(Interpreter):
                         cur_obj_id = obj_id
                 if cur_obj_id is not None:
                     mapped_objs.add(cur_obj_id)
+        elif isinstance(map_expr.position, GetAround):
+            # if there is at least one object in BOTH sets, add everything from both sets
+            if len(rest) > 0 and len(objs) > 0:
+                mapped_objs = rest.union(objs)
+            # otherwise, return empty set
+        elif isinstance(map_expr.position, GetNotAround):
+            # if the restriction is EMPTY and the target set is NOT, add everything from target set
+            if len(rest) == 0 and len(objs) > 0:
+                mapped_objs = objs
         elif isinstance(map_expr.position, GetLeft):
             for target_obj_id in objs:
                 target_left, target_top, target_right, target_bottom = abs_img[target_obj_id]["bbox"]
@@ -606,8 +554,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_x = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -632,8 +578,6 @@ class ImageEditInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_x = None
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest:
@@ -652,8 +596,6 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(map_expr.position, GetContains):
             for target_obj_id in objs:
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -665,8 +607,7 @@ class ImageEditInterpreter(Interpreter):
         elif isinstance(map_expr.position, GetIsContained):
             for target_obj_id in objs:
                 for obj_id, abs_img_map in abs_img.items():
-                    if obj_id == "prob":
-                        continue
+
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -764,8 +705,7 @@ class ImageEditInterpreter(Interpreter):
         return True
     
 
-    def get_all_universes(self, full_inp):
-        inp_conf = full_inp["conf"]
+    def get_all_universes(self, inp_conf):
         inp_conf_copy = {}
         for key, val in inp_conf.items():
             inp_conf_copy[key] = [item for item in self.get_all_versions_of_object(val)]
@@ -773,47 +713,6 @@ class ImageEditInterpreter(Interpreter):
         vals = list(inp_conf_copy.values())
         all_lists = list(itertools.product(*vals))
         all_universes = [{keys[i]: l[i] for i in range(len(l)) if l[i] is not None} for l in all_lists]
-        for universe in all_universes:
-            prob = 1
-            for obj_id, obj in inp_conf.items():
-                if obj_id in universe and obj["Flag"] == False:
-                    prob *= obj["Flag_prob"]
-                elif obj["Flag"] == False:
-                    prob *= (1 - obj["Flag_prob"])
-                    # not sure about this
-                    continue
-                for attr in ATTRIBUTES:
-                    if attr in universe[obj_id] and len(obj[attr]) == 2:
-                        prob *= inp_conf[obj_id][f"{attr}_prob"][universe[obj_id][attr]]
-                    # else:
-                        # prob *= abs_img_conf[obj_id][key + "_prob"][False]
-            universe["prob"] = prob
-        return all_universes
-    
-    def get_all_universes2(self, full_inp):
-        inp_conf = full_inp["conf"]
-        inp_conf_copy = {}
-        for key, val in inp_conf.items():
-            inp_conf_copy[key] = [item for item in self.get_all_versions_of_object(val)]
-        keys = list(inp_conf_copy.keys())
-        vals = list(inp_conf_copy.values())
-        all_lists = list(itertools.product(*vals))
-        all_universes = [{keys[i]: l[i] for i in range(len(l)) if l[i] is not None} for l in all_lists]
-        for universe in all_universes:
-            prob = 1
-            for obj_id, obj in inp_conf.items():
-                if obj_id in universe and obj["Flag"] == False:
-                    prob *= obj["Flag_prob"]
-                elif obj["Flag"] == False:
-                    prob *= (1 - obj["Flag_prob"])
-                    # not sure about this
-                    continue
-                for attr in ATTRIBUTES:
-                    if attr in universe[obj_id] and len(obj[attr]) == 2:
-                        prob *= inp_conf[obj_id][f"{attr}_prob"][universe[obj_id][attr]]
-                    # else:
-                        # prob *= abs_img_conf[obj_id][key + "_prob"][False]
-            universe["prob"] = prob
         return all_universes
     
 
@@ -847,14 +746,6 @@ class ImageEditInterpreter(Interpreter):
         return [True, False]
     
 
-    def get_labelling_q_probs(self, inp, obj_id, key):
-        val = inp["conf"][obj_id][f"{key}_prob"]
-        if key == "Flag":
-            return [val, 1 - val]
-        else:
-            return list(val.values())
-    
-
     def set_labelling_q_answer(self, inp, obj_id, key, answer):
         if key == "Flag":
             original_obj = inp[obj_id]
@@ -866,21 +757,8 @@ class ImageEditInterpreter(Interpreter):
             original_obj = inp[obj_id][key]
             inp[obj_id][key] = [answer]
         return original_obj
-    
-
-    def set_labelling_q_probs(self, inp, obj_id, key, answer):
-        if key == "Flag":
-            original_obj = inp["conf"][obj_id][f"{key}_prob"]
-            if answer:
-                inp["conf"][obj_id][f"{key}_prob"] = 1
-            # TODO: I think not needed? 
-            # else:
-                # del inp[obj_id]
-        else:
-            original_obj = inp["conf"][obj_id][f"{key}_prob"]
-            inp["conf"][obj_id][f"{key}_prob"] = {answer: 1, not answer: 0}
-        return original_obj
         
+
 
     def reset_labelling_q(self, inp, obj_id, key, original_obj):
         if key == "Flag":
@@ -888,10 +766,6 @@ class ImageEditInterpreter(Interpreter):
             original_obj["Flag"] = False 
         else:
             inp[obj_id][key] = [True, False]
-
-
-    def reset_labelling_q_probs(self, inp, obj_id, key, probs):
-        inp["conf"][obj_id][f"{key}_prob"] = probs
 
 
     def get_num_partial_conf_samples(self, num_universes):
@@ -919,9 +793,7 @@ class ImageEditInterpreter(Interpreter):
         if key == "Flag":
             # If the object DOES exist in ground truth, we set flag to True
             abs_img["conf"][obj_id]["Flag"] = True 
-            abs_img["conf"][obj_id]["Flag_prob"] = 1
         else:
             # If the key is a specific attribute, we set the conformal prediction to the correct value
             gt_val = abs_img["gt"][gt_id][key] if key in abs_img["gt"][gt_id] else False
             abs_img["conf"][obj_id][key] = [gt_val]
-            abs_img["conf"][obj_id][f"{key}_prob"] = {gt_val : 1, not gt_val :0 }
