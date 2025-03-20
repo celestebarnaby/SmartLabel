@@ -32,7 +32,7 @@ image_search_benchmarks = [
 
     # Visual concept tasks
     Benchmark(
-        Map(IsObject("Glasses"), IsObject("Face"), GetIsContained()),
+        Map(IsObject("Face"), IsObject("Glasses"), GetContains()),
         "People wearing glasses",
         "wedding",
     ),
@@ -67,11 +67,6 @@ image_search_benchmarks = [
         "wedding",
     ),
     Benchmark(
-        Union([IsObject("Bride"), IsObject("Suit")]),
-        "Well-dressed people",
-        "wedding",
-    ),
-    Benchmark(
         Map(IsObject("Guitar"), IsObject("Face"), GetAbove()),
         "Guitar players",
         "festival",
@@ -87,7 +82,7 @@ image_search_benchmarks = [
         "festival",
     ),
     Benchmark(
-        Map(IsObject("Microphone"), IsSmiling(), GetAbove()),
+        Map(IsObject("Microphone"), IsSmiling(), GetAround()),
         "Happy performers",
         "festival",
     ),
@@ -99,6 +94,11 @@ image_search_benchmarks = [
     Benchmark(
         Map(IsObject("Person"), IsObject("Bicycle"), GetBelow()),
         "Cyclists",
+        "cars",
+    ),
+    Benchmark(
+        Map(IsObject("Bicycle"), IsObject("Car"), GetNotAround()),
+        "Carfree streets",
         "cars",
     ),
     Benchmark(

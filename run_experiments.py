@@ -57,7 +57,7 @@ def run_experiments(domain, seed_inc):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        # ("standard", LearnSy),
+        ("standard", LearnSy),
         # # SampleSy (baseline)
         ("standard", SampleSy),
         # # SmartLabel (our technique)
@@ -65,9 +65,9 @@ def run_experiments(domain, seed_inc):
         # # CCE-NoAbs (ablation)
         ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
-        # ("CCE", SmartLabelNoUB),
+        ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        # ("CCE", SelectRandom),
+        ("CCE", SelectRandom),
     ] 
 
     for semantics, question_selection in test_settings:
@@ -143,8 +143,8 @@ def csv_to_dict(filename, task_type):
         print(filename)
         for row in reader:
             row = [item.strip() for item in row]
-            if "Type" in keys and task_type not in row:
-                continue
+            # if "Type" in keys and task_type not in row:
+                # continue
             for key, value in zip(keys, row):
                 if key not in data_dict:
                     data_dict[key] = []
@@ -170,7 +170,7 @@ def get_experiment_results(domains, seed_inc):
 
     # Create a table that has the results presented in tables 1, 2, 3 in the paper.
     for domain in domains:
-        for task_type in ["Edit", "Search"] if domain.__name__ == "ImageEditActiveLearning" else [""]:
+        for task_type in [""] if domain.__name__ == "ImageEditActiveLearning" else [""]:
             setting_to_data_per_domain = {}
             data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_{seed_inc}.csv", task_type)
 
@@ -299,7 +299,7 @@ def get_combined_table():
         "# Benchmarks Solved",
         "Avg. Time per Round of Interaction"
     ]
-    for i in range(1):
+    for i in range(NUM_SEEDS):
         data_dict = csv_to_dict(f"./output/table_data_{i}.csv", "")
         for key in keys:
             if key in {"Domain", "Test Setting"}:
@@ -319,10 +319,9 @@ def get_combined_table():
 
 
 if __name__ == "__main__":
-    for i in range(1):
-        # domains = [MNISTActiveLearning, ImageEditActiveLearning]
-        domains = [ImageSearchActiveLearning]
-        for domain in domains:
-            run_experiments(domain, i)
-        get_experiment_results(domains, i)
+    for i in range(NUM_SEEDS):
+        domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
+        # for domain in domains:
+            # run_experiments(domain, i)
+        # get_experiment_results(domains, i)
     get_combined_table()
