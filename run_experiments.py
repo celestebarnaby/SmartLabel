@@ -65,8 +65,8 @@ def run_experiments(domain, seed_inc):
         # # SampleSy (baseline)
         # ("standard", SampleSy),
         # # SmartLabel (our technique)
-        # ("CCE", SmartLabel),
-        ("CCE", PLDIReviewerDRequest)
+        ("CCE", SmartLabel),
+        # ("CCE", PLDIReviewerDRequest)
         # # CCE-NoAbs (ablation)
         # ("CCE-NoAbs", SmartLabel),
         # # QS-noUB (ablation)
@@ -101,7 +101,7 @@ def run_experiments(domain, seed_inc):
 
             # Timeout after 600 seconds
             signal.signal(signal.SIGALRM, handler)
-            signal.alarm(600)
+            signal.alarm(1200)
             output_progs, time_per_round, num_label_qs, num_input_qs, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
@@ -165,8 +165,6 @@ def get_experiment_results(domains, seed_inc):
         "Domain",
         "Test Setting",
         "Avg. # Rounds of Interaction",
-        "Avg. # Label Questions",
-        "Avg. # Input Questions",
         "Avg. # Initial Programs",
         "Avg. # Final Programs",
         "Avg. Input Space Size",
@@ -263,7 +261,7 @@ def get_experiment_results(domains, seed_inc):
                     f"{domain.__name__}{task_type}",
                     key,
                     np.mean(val["num_rounds"]),
-                    np.mean(val["num_init_progs"]),
+                    np.mean(val["num_init_progs"]), 
                     np.mean(val["num_final_progs"]),
                     np.mean(val["input_space_sizes"]),
                     np.mean(val["question_space_sizes"]),
@@ -278,8 +276,6 @@ def get_experiment_results(domains, seed_inc):
             "Overall",
             key,
             np.mean(val["num_rounds"]),
-            np.mean(val["num_label_qs"]),
-            np.mean(val["num_input_qs"]),
             np.mean(val["num_init_progs"]),
             np.mean(val["num_final_progs"]),
             np.mean(val["input_space_sizes"]),
@@ -381,8 +377,12 @@ def get_questions():
 
 if __name__ == "__main__":
     for i in range(NUM_SEEDS):
-        domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
+        domains = [
+            ImageSearchActiveLearning,
+            MNISTActiveLearning, 
+            ImageEditActiveLearning, 
+            ]
         # for domain in domains:
             # run_experiments(domain, i)
-        # get_experiment_results(domains, i)
+        get_experiment_results(domains, i)
     get_combined_table()

@@ -20,6 +20,8 @@ class ImageSearchInterpreter(Interpreter):
             objs_under = set()
             objs_over = set()
             for (obj_id, obj_abs_img) in abs_img.items():
+                if obj_id == "prob":
+                    continue
                 if obj_abs_img["Label"] == expr.obj:
                     objs_over.add(obj_id)
                     if obj_abs_img["Flag"]:
@@ -439,6 +441,8 @@ class ImageSearchInterpreter(Interpreter):
         elif isinstance(expr, IsObject):
             objs = set()
             for (obj_id, obj_abs_img) in abs_img.items():
+                if obj_id == "prob":
+                    continue
                 if obj_abs_img["Label"] == expr.obj:
                     objs.add(obj_id)
             res = objs
@@ -471,12 +475,36 @@ class ImageSearchInterpreter(Interpreter):
             # or isinstance(expr, IsPrice)
             # or isinstance(expr, IsPhoneNumber)
         ):
-            res = {obj for obj in abs_img if str(expr) in abs_img[obj] and abs_img[obj][str(expr)]}
+            res = {obj for obj in abs_img if obj != "prob" and str(expr) in abs_img[obj] and abs_img[obj][str(expr)]}
         else:
             # TODO: error handling
             print(expr)
             raise Exception
-        return res
+        return {obj for obj in res if obj != "prob"}
+
+    def get_labelling_q_probs(self, inp, obj_id, key):
+        val = inp["conf"][obj_id][f"{key}_prob"]
+        if key == "Flag":
+            return [val, 1 - val]
+        else:
+            return list(val.values())
+
+    def set_labelling_q_probs(self, inp, obj_id, key, answer):
+        if key == "Flag":
+            original_obj = inp["conf"][obj_id][f"{key}_prob"]
+            if answer:
+                inp["conf"][obj_id][f"{key}_prob"] = 1
+            # TODO: I think not needed? 
+            # else:
+                # del inp[obj_id]
+        else:
+            original_obj = inp["conf"][obj_id][f"{key}_prob"]
+            inp["conf"][obj_id][f"{key}_prob"] = {answer: 1, not answer: 0}
+        return original_obj
+
+
+    def reset_labelling_q_probs(self, inp, obj_id, key, probs):
+        inp["conf"][obj_id][f"{key}_prob"] = probs
 
 
     def eval_map_standard(
@@ -499,6 +527,8 @@ class ImageSearchInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_y = None
                 for obj_id, abs_img_map in abs_img.items():
+                    if obj_id == "prob":
+                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest:
@@ -521,6 +551,8 @@ class ImageSearchInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_y = None
                 for obj_id, abs_img_map in abs_img.items():
+                    if obj_id == "prob":
+                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -554,6 +586,8 @@ class ImageSearchInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_x = None
                 for obj_id, abs_img_map in abs_img.items():
+                    if obj_id == "prob":
+                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -578,6 +612,8 @@ class ImageSearchInterpreter(Interpreter):
                 cur_obj_id = None
                 cur_x = None
                 for obj_id, abs_img_map in abs_img.items():
+                    if obj_id == "prob":
+                        continue
                     if obj_id == target_obj_id:
                         continue
                     if obj_id not in rest:
@@ -596,6 +632,8 @@ class ImageSearchInterpreter(Interpreter):
         elif isinstance(map_expr.position, GetContains):
             for target_obj_id in objs:
                 for obj_id, abs_img_map in abs_img.items():
+                    if obj_id == "prob":
+                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -607,7 +645,8 @@ class ImageSearchInterpreter(Interpreter):
         elif isinstance(map_expr.position, GetIsContained):
             for target_obj_id in objs:
                 for obj_id, abs_img_map in abs_img.items():
-
+                    if obj_id == "prob":
+                        continue
                     if abs_img_map["ImgIndex"] != abs_img[target_obj_id]["ImgIndex"]:
                         continue
                     if obj_id == target_obj_id:
@@ -705,7 +744,8 @@ class ImageSearchInterpreter(Interpreter):
         return True
     
 
-    def get_all_universes(self, inp_conf):
+    def get_all_universes(self, full_inp):
+        inp_conf = full_inp["conf"]
         inp_conf_copy = {}
         for key, val in inp_conf.items():
             inp_conf_copy[key] = [item for item in self.get_all_versions_of_object(val)]
@@ -713,6 +753,21 @@ class ImageSearchInterpreter(Interpreter):
         vals = list(inp_conf_copy.values())
         all_lists = list(itertools.product(*vals))
         all_universes = [{keys[i]: l[i] for i in range(len(l)) if l[i] is not None} for l in all_lists]
+        for universe in all_universes:
+            prob = 1
+            for obj_id, obj in inp_conf.items():
+                if obj_id in universe and obj["Flag"] == False:
+                    prob *= obj["Flag_prob"]
+                elif obj["Flag"] == False:
+                    prob *= (1 - obj["Flag_prob"])
+                    # not sure about this
+                    continue
+                for attr in ATTRIBUTES:
+                    if attr in universe[obj_id] and len(obj[attr]) == 2:
+                        prob *= inp_conf[obj_id][f"{attr}_prob"][universe[obj_id][attr]]
+                    # else:
+                        # prob *= abs_img_conf[obj_id][key + "_prob"][False]
+            universe["prob"] = prob
         return all_universes
     
 
