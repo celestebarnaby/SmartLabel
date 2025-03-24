@@ -539,23 +539,17 @@ def make_scalability_experiment_plot(domain, deltas, task_type=None):
     plt.xlabel('Avg. Prediction Set Size')
     plt.ylabel('Avg. User Interaction Time (s)')
 
-    task_type_to_title = {
-        None : 'PixelList',
-        'Search' : 'ImageSearch',
-        'Edit' : 'ImageEdit'
-    }
-
-    plt.title(task_type_to_title[task_type])
+    plt.title(task_type)
 
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f'./output_scalability/scalability_plot_{task_type_to_title[task_type]}.pdf', dpi=300)
+    plt.savefig(f'./output_scalability/scalability_plot_{task_type}.pdf', dpi=300)
 
 
 if __name__ == "__main__":
     img_lists = get_img_lists(load=True)
     mnist_deltas = [
-        # .005,
+        .005,
         .00475,
         .0045,
         .00425,
@@ -566,10 +560,10 @@ if __name__ == "__main__":
         # interp = MNISTInterpreter()
         # input_questions = get_questions_from_img_lists(img_lists, interp, delta)
         # run_experiments(MNISTActiveLearning, input_questions, delta, None)
-    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
+    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas, "VisArith")
 
     image_edit_deltas = [
-        # .45,
+        .45,
         .425,
         .4,
         .375,
@@ -580,5 +574,4 @@ if __name__ == "__main__":
     saved_program_spaces = {}
     # for i, delta in enumerate(image_edit_deltas):
         # run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
-    for task_type in ["Edit", "Search"]:
-        make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas, task_type)    
+    make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas, "ImageEdit")    
