@@ -63,9 +63,9 @@ def run_experiments(domain):
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        ("standard", LearnSy),
+        # ("standard", LearnSy),
         # # SampleSy (baseline)
-        ("standard", SampleSy),
+        # ("standard", SampleSy),
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
@@ -73,7 +73,7 @@ def run_experiments(domain):
         # # QS-noUB (ablation)
         # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        ("CCE", SelectRandom),
+        # ("CCE", SelectRandom),
     ] 
 
     for semantics, question_selection in test_settings:
@@ -144,7 +144,7 @@ def run_experiments(domain):
             f.write(s.getvalue())
 
 
-def csv_to_dict(filename, task_type):
+def csv_to_dict(filename):
     data_dict = {}
     with open(filename, mode='r') as file:
         reader = csv.reader(file)
@@ -152,8 +152,6 @@ def csv_to_dict(filename, task_type):
         print(filename)
         for row in reader:
             row = [item.strip() for item in row]
-            # if "Type" in keys and task_type not in row:
-                # continue
             for key, value in zip(keys, row):
                 if key not in data_dict:
                     data_dict[key] = []
@@ -269,22 +267,6 @@ def get_experiment_results(domains):
             ])
 
     for key, val in setting_to_data_overall.items():
-        rows.append([
-            "Overall",
-            key,
-            np.mean(val["num_rounds"]),
-            np.mean(val["num_init_progs"]),
-            np.mean(val["num_final_progs"]),
-            np.mean(val["input_space_sizes"]),
-            np.mean(val["question_space_sizes"]),
-            np.mean(val["avg_answer_space_sizes"]),
-            np.mean(val["avg_pred_set_sizes"]),
-            val["correct"],
-            np.mean(val["runtimes"]),
-            sum(val["refine_hs_times"]),
-            sum(val["select_question_times"]),
-            sum(val["distinguish_times"]),
-        ])
 
         total_runtime = sum(val["refine_hs_times"]) + sum(val["select_question_times"]) + sum(val["distinguish_times"])
         # explode = (0.05, 0.05, 0.05)
@@ -316,7 +298,11 @@ def get_experiment_results(domains):
 
 
 if __name__ == "__main__":
-    domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
+    domains = [
+        MNISTActiveLearning, 
+        ImageEditActiveLearning, 
+        ImageSearchActiveLearning
+    ]
     for domain in domains:
         run_experiments(domain)
     get_experiment_results(domains)
