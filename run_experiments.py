@@ -82,14 +82,13 @@ def run_experiments(domain, input_space, delta):
         ("CCE", SelectRandom),
     ] 
 
+    avg_pred_set_sizes = []
+    avg_total_pred_set_sizes = []
     for semantics, question_selection in test_settings:
 
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
-        avg_pred_set_size, avg_total_pred_set_size = get_pred_set_sizes(input_space)
-        print(f"Average prediction set size: {avg_pred_set_size}")
-        print(f"Average total prediction set size: {avg_total_pred_set_size}")
         for i, benchmark in enumerate(active_learning.benchmarks):
             random.seed(SEED + seed_inc + i)
 
@@ -97,7 +96,10 @@ def run_experiments(domain, input_space, delta):
             print(f"Domain: {question_selection.__name__}")
 
             # Generate the input space, question space, and initial examples specific to the domain
-            active_learning.set_question_space(benchmark, i, copy.deepcopy(input_space))
+            active_learning.set_question_space(benchmark, i, copy.deepcopy(input_space), delta)
+            avg_pred_set_size, avg_total_pred_set_size = active_learning.get_pred_set_sizes(active_learning.input_space)
+            avg_pred_set_sizes.append(avg_pred_set_size)
+            avg_total_pred_set_sizes.append(avg_total_pred_set_size)
 
             print("Performing initial synthesis...")
             initial_synthesis_time = active_learning.set_program_space(benchmark, i)
@@ -111,7 +113,7 @@ def run_experiments(domain, input_space, delta):
 
             # Timeout after 600 seconds
             signal.signal(signal.SIGALRM, handler)
-            signal.alarm(600)
+            signal.alarm(1500)
             output_progs, time_per_round, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
@@ -122,8 +124,8 @@ def run_experiments(domain, input_space, delta):
                     benchmark.dataset_name,
                     semantics,
                     delta,
-                    avg_pred_set_size,
-                    avg_total_pred_set_size,
+                    np.mean(avg_pred_set_sizes),
+                    np.mean(avg_total_pred_set_sizes),
                     question_selection.__name__,
                     correct, 
                     initial_synthesis_time,
@@ -151,20 +153,6 @@ def run_experiments(domain, input_space, delta):
         ps.print_stats()
         with open(f"./profiling/{domain.__name__}_{semantics}_{question_selection.__name__}_{domain.__name__}_SCALABILITY_{delta}.txt", "w") as f:
             f.write(s.getvalue())
-
-
-def get_pred_set_sizes(input_space):
-    per_input_pred_set_sizes = []
-    per_component_pred_set_sizes = []
-    for inp_id, inp in input_space.items():
-        for comp in inp['conf']['img-list']:
-            if len(comp) > 1:
-                per_component_pred_set_sizes.append(len(comp))
-        if len(inp['conf']['img']) > 1:
-            per_component_pred_set_sizes.append(len(inp['conf']['img']))
-        per_input_pred_set_sizes.append(len(inp['conf_list']))
-    return sum(per_component_pred_set_sizes)/len(per_component_pred_set_sizes), sum(per_input_pred_set_sizes)/len(per_input_pred_set_sizes)
-
 
 
 def csv_to_dict(filename):
@@ -562,13 +550,13 @@ def make_scalability_experiment_plot(domain, deltas):
 
     plt.tight_layout()
     # Display the plot
-    plt.savefig('./output/scalability_plot.pdf', dpi=300)
+    plt.savefig(f'./output/scalability_plot_{domain.__name__}.pdf', dpi=300)
 
 
 
 if __name__ == "__main__":
     img_lists = get_img_lists(load=True)
-    deltas = [
+    mnist_deltas = [
         .005,
         .00475,
         .0045,
@@ -576,12 +564,20 @@ if __name__ == "__main__":
         .004,
         .00375,
     ]
-    # for delta in deltas:
-        # interp = MNISTInterpreter()
-        # input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+    # for delta in mnist_deltas:
+    #     interp = MNISTInterpreter()
+    #     input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+    #     run_experiments(MNISTActiveLearning, input_questions, delta)
+    #     get_experiment_results([MNISTActiveLearning])
+    # make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
-        # domains = [ MNISTActiveLearning ]
-        # for domain in domains:
-            # run_experiments(domain, input_questions, delta)
-        # get_experiment_results(domains)
-    make_scalability_experiment_plot(MNISTActiveLearning, deltas)
+    image_edit_deltas = [
+        .45,
+        # .425,
+        # .4,
+        # .375,
+    ]
+    for delta in image_edit_deltas:
+        run_experiments(ImageEditActiveLearning, {}, delta)
+        # get_experiment_results([ImageEditActiveLearning])
+    make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas)    

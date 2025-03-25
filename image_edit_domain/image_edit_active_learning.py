@@ -28,10 +28,27 @@ class ImageEditActiveLearning(ActiveLearning):
     def set_interpreter(self):
         self.interp = ImageEditInterpreter()
 
-    def set_question_space(self, benchmark, i):
+    def get_pred_set_sizes(self, input_space):
+        per_input_pred_set_sizes = []
+        per_component_pred_set_sizes = []
+        for inp_id, inp in input_space.items():
+            for obj in inp['conf'].values():
+                if obj["Flag"]:
+                    per_component_pred_set_sizes.append(1)
+                else:
+                    per_component_pred_set_sizes.append(2)
+                for attr in ATTRIBUTES:
+                    if attr not in obj:
+                        continue
+                    per_component_pred_set_sizes.append(len(obj[attr]))
+            per_input_pred_set_sizes.append(len(inp['conf_list']))
+        return sum(per_component_pred_set_sizes)/len(per_component_pred_set_sizes), sum(per_input_pred_set_sizes)/len(per_input_pred_set_sizes)
+
+
+    def set_question_space(self, benchmark, i, input_space, delta):
         print("Loading images...")
 
-        dataset_dir = IMG_EDIT_DIR.format(benchmark.dataset_name)
+        dataset_dir = f"./scalability_experiment/{benchmark.dataset_name}_{delta}.json"
         if os.path.exists(dataset_dir):
             with open(dataset_dir, "r") as fp:
                 preprocessed_images = json.load(fp)
@@ -39,11 +56,17 @@ class ImageEditActiveLearning(ActiveLearning):
         else:
             # TODO: error handling
             raise TypeError 
+        # TODO: Maybe shouldn't have MAX_PRED_SET_SIZE?
         input_space = {img : abs_img for img, abs_img in all_images.items() if len(abs_img["conf_list"]) <= MAX_PRED_SET_SIZE}
+<<<<<<< HEAD
         examples = self.get_examples(benchmark.gt_prog, all_images)
         for inp, _ in examples:
             input_space[inp] = all_images[inp]
         labelling_qs, avg_pred_set_sizes = self.get_labelling_qs(input_space)
+=======
+        examples = self.get_examples(benchmark.gt_prog, input_space)
+        labelling_qs = self.get_labelling_qs(input_space)
+>>>>>>> 2716c93 (Add image editing domain to scalability experiment)
         self.input_space = input_space 
         self.examples = examples 
         self.labelling_qs = labelling_qs

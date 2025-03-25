@@ -27,7 +27,18 @@ class MNISTActiveLearning(ActiveLearning):
     def set_interpreter(self):
         self.interp = MNISTInterpreter()
 
-    def set_question_space(self, benchmark, i, input_space):
+    def get_pred_set_sizes(self, input_space):
+        per_input_pred_set_sizes = []
+        per_component_pred_set_sizes = []
+        for inp_id, inp in input_space.items():
+            for comp in inp['conf']['img-list']:
+                per_component_pred_set_sizes.append(len(comp))
+            per_component_pred_set_sizes.append(len(inp['conf']['img']))
+            per_input_pred_set_sizes.append(len(inp['conf_list']))
+        return sum(per_component_pred_set_sizes)/len(per_component_pred_set_sizes), sum(per_input_pred_set_sizes)/len(per_input_pred_set_sizes)
+
+
+    def set_question_space(self, benchmark, i, input_space, delta):
 
         # input_space = {}
         gt_prog = self.interp.parse(benchmark.gt_prog)
