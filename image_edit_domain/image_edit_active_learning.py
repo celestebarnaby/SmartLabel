@@ -58,15 +58,10 @@ class ImageEditActiveLearning(ActiveLearning):
             raise TypeError 
         # TODO: Maybe shouldn't have MAX_PRED_SET_SIZE?
         input_space = {img : abs_img for img, abs_img in all_images.items() if len(abs_img["conf_list"]) <= MAX_PRED_SET_SIZE}
-<<<<<<< HEAD
         examples = self.get_examples(benchmark.gt_prog, all_images)
         for inp, _ in examples:
             input_space[inp] = all_images[inp]
         labelling_qs, avg_pred_set_sizes = self.get_labelling_qs(input_space)
-=======
-        examples = self.get_examples(benchmark.gt_prog, input_space)
-        labelling_qs = self.get_labelling_qs(input_space)
->>>>>>> 2716c93 (Add image editing domain to scalability experiment)
         self.input_space = input_space 
         self.examples = examples 
         self.labelling_qs = labelling_qs
