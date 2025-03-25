@@ -80,7 +80,7 @@ def run_experiments(domain, seed_inc):
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
-        for i, benchmark in enumerate(active_learning.benchmarks):
+        for i, benchmark in enumerate(active_learning.benchmarks[:1]):
             random.seed(SEED + seed_inc + i)
 
             print(f"Benchmark: {benchmark.gt_prog}")
@@ -324,55 +324,6 @@ def get_combined_table():
         for row in rows:
             writer.writerow(row)
 
-def get_questions2():
-    imgs = load_mnist()
-    new_input_space = {}
-    interp = MNISTInterpreter()
-    with open("./mnist_domain/input_space.json", 'r') as f:
-        input_space = json.load(f)
-    for inp_id, inp in input_space.items():
-        new_img_list, new_img = get_new_img_list(inp, imgs)
-        new_inp = {"gt":{"img-list" : [get_gt([img]) for img in new_img_list], "img" : get_gt([new_img])},
-               "standard" : {"img-list" : [get_standard([img]) for img in new_img_list], "img" : get_standard([new_img])} ,
-               "conf" : {"img-list" : [get_conf([img]) for img in new_img_list], "img" : get_conf([new_img])},
-               "probs" : {"img-list" : [get_probs([img]) for img in new_img_list], "img" : get_probs([new_img])},
-               }
-        new_inp["conf_list"] = interp.get_all_universes(new_inp)
-        
-        # labelling_questions += [(len(new_input_space), 'img-list', i) for i in range(len(new_inp['conf']['img-list'])) if len(new_inp['conf']['img-list'][i]) > 1]
-        # if len(new_inp['conf']['img']) > 1:
-            # labelling_questions.append((len(new_input_space), 'img', None))
-        new_input_space[inp_id] = new_inp
-    with open('input_space5.json', 'w') as f:
-        json.dump(new_input_space, f, cls=NpEncoder)
-
-
-def get_questions():
-    imgs = load_mnist()
-
-    input_space = {}
-    labelling_questions = []
-    interp = MNISTInterpreter()
-    while len(input_space) < NUM_INPUTS:
-        input_imgs = [get_int(imgs) for _ in range(LIST_LENGTH)]
-        img_int = get_int(imgs)
-        inp = {"gt":{"img-list" : [get_gt(img) for img in input_imgs], "img" : get_gt(img_int)},
-               "standard" : {"img-list" : [get_standard(img) for img in input_imgs], "img" : get_standard(img_int)} ,
-               "conf" : {"img-list" : [get_conf(img) for img in input_imgs], "img" : get_conf(img_int)},
-               "probs" : {"img-list" : [get_probs(img) for img in input_imgs], "img" : get_probs(img_int)},
-               }
-        inp["conf_list"] = interp.get_all_universes(inp)
-        
-
-        labelling_questions += [(len(input_space), 'img-list', i) for i in range(len(inp['conf']['img-list'])) if len(inp['conf']['img-list'][i]) > 1]
-        if len(inp['conf']['img']) > 1:
-            labelling_questions.append((len(input_space), 'img', None))
-
-        input_space[str(len(input_space))] = inp
-
-    with open('input_space2.json', 'w') as f:
-        json.dump(input_space, f, cls=NpEncoder)
-
 
 
 if __name__ == "__main__":
@@ -382,7 +333,7 @@ if __name__ == "__main__":
             MNISTActiveLearning, 
             ImageEditActiveLearning, 
             ]
-        # for domain in domains:
-            # run_experiments(domain, i)
+        for domain in domains:
+            run_experiments(domain, i)
         get_experiment_results(domains, i)
     get_combined_table()
