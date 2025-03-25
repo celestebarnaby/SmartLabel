@@ -42,7 +42,7 @@ import statistics
 # Constants
 from constants import *
 
-def run_experiments(domain, input_space, delta, saved_examples, delta_index):
+def run_experiments(domain, input_space, delta, saved_examples, delta_index, saved_program_spaces):
 
     active_learning_data = [(
              "GT Program",
@@ -76,7 +76,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index):
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
-        ("CCE-NoAbs", SmartLabelNoUB),
+        # ("CCE-NoAbs", SmartLabelNoUB),
         # # QS-noUB (ablation)
         # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
@@ -106,7 +106,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index):
 
             print("Performing initial synthesis...")
             random.seed(constants.SEED + i)
-            initial_synthesis_time = active_learning.set_program_space(benchmark, i)
+            initial_synthesis_time = active_learning.set_program_space(benchmark, i, saved_program_spaces)
 
             print("Initial synthesis complete.")
             initial_program_space_size = len(active_learning.program_space)
@@ -585,7 +585,8 @@ if __name__ == "__main__":
         .325,
     ]
     saved_examples = {}
+    saved_program_spaces = {}
     for i, delta in enumerate(image_edit_deltas):
-        run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i)
+        run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
         # get_experiment_results([ImageEditActiveLearning])
     make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas)    

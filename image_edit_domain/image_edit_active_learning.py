@@ -81,13 +81,22 @@ class ImageEditActiveLearning(ActiveLearning):
         avg_answer_space_per_question = np.mean([2 for _ in labelling_qs] + [len(inp["conf_list"]) for inp in input_space.values()])
         return avg_answer_space_per_question, avg_pred_set_sizes
 
-    def set_program_space(self, benchmark, i):
-        if benchmark.dataset_name in self.dataset_to_program_space:
-            complete_program_space = self.dataset_to_program_space[benchmark.dataset_name]
+    def set_program_space(self, benchmark, i, saved_program_spaces):
+        # JUST FOR SCALABILITY EXPERIMENT
+        if benchmark.dataset_name in saved_program_spaces:
+            program_space = saved_program_spaces[benchmark.dataset_name]
         else:
-            complete_program_space = self.synth.synthesize([])
-            self.dataset_to_program_space[benchmark.dataset_name] = complete_program_space
-        program_space = random.sample(complete_program_space, min(len(complete_program_space), self.max_prog_space_size))
+            if benchmark.dataset_name in self.dataset_to_program_space:
+                complete_program_space = self.dataset_to_program_space[benchmark.dataset_name]
+            else:
+                complete_program_space = self.synth.synthesize([])
+                self.dataset_to_program_space[benchmark.dataset_name] = complete_program_space
+
+            # all benchmarks pass w this 
+            # random.seed(123)
+
+            program_space = random.sample(complete_program_space, min(len(complete_program_space), IMAGE_EDIT_INIT_PROG_SPACE_SIZE))
+            saved_program_spaces[benchmark.dataset_name] = program_space
         initial_synth_start_time = time.perf_counter()
         program_space = self.synth.check_programs(program_space, [(self.input_space[q], a) for q, a in self.examples])
         initial_synthesis_time = time.perf_counter() - initial_synth_start_time
