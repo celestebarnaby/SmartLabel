@@ -38,15 +38,15 @@ class MNISTActiveLearning(ActiveLearning):
         return sum(per_component_pred_set_sizes)/len(per_component_pred_set_sizes), sum(per_input_pred_set_sizes)/len(per_input_pred_set_sizes)
 
 
-    def set_question_space(self, benchmark, i, input_space, delta):
+    def set_question_space(self, benchmark, i, input_space, delta, saved_examples, delta_index):
 
         # input_space = {}
         gt_prog = self.interp.parse(benchmark.gt_prog)
         labelling_qs = []
 
-        with open(MNIST_QUESTIONS_DIR, 'r') as f:
-            input_space = json.load(f)
-        input_space = {int(key) : val for key, val in input_space.items()}
+        # with open(MNIST_QUESTIONS_DIR, 'r') as f:
+            # input_space = json.load(f)
+        # input_space = {int(key) : val for key, val in input_space.items()}
         pred_set_sizes = []
         for inp_id, inp in input_space.items():
             labelling_qs += [LabelQuestion(inp_id, "img-list", i) for i in range(len(inp["conf"]["img-list"]))]
@@ -79,7 +79,7 @@ class MNISTActiveLearning(ActiveLearning):
         print(f"Standard Semantics Accuracy: {len([entry for entry in entries_correct_standard if entry])/len(entries_correct_standard)}")
         print(f"Conformal Semantics Accuracy: {len([entry for entry in entries_correct_conf if entry])/len(entries_correct_conf)}")
 
-    def set_program_space(self, benchmark, i):
+    def set_program_space(self, benchmark, i, saved_program_spaces):
         initial_synth_start_time = time.perf_counter()
         self.program_space = self.synth.synthesize([(self.input_space[q], a) for q, a in self.examples])
         initial_synthesis_time = time.perf_counter() - initial_synth_start_time

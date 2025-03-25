@@ -71,7 +71,7 @@ class ImageEditActiveLearning(ActiveLearning):
                 examples.append((example_id, output))
                 # if output is None or len(output) == 0:
                 #     raise TypeError
-        labelling_qs = self.get_labelling_qs(input_space)
+        labelling_qs, avg_pred_set_sizes = self.get_labelling_qs(input_space)
         self.input_space = input_space 
         self.examples = examples 
         self.labelling_qs = labelling_qs

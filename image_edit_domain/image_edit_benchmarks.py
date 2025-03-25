@@ -86,6 +86,7 @@ image_edit_benchmarks = [
         "Smiling faces and faces directly to their right",
         "wedding"
     ),
+
     Benchmark(
         Union(
             [
@@ -229,7 +230,6 @@ image_edit_benchmarks = [
         "Faces of people not playing guitar",
         "festival",
     ),
-    ]
 
     # # RECEIPTS BENCHMARKS!
     # Benchmark(
@@ -304,6 +304,8 @@ image_edit_benchmarks = [
     #     "All text except two leftmost columns",
     #     "receipts"
     # ),
+]
+
 
 # THESE ARE THE POPL PAPER BENCHMARKS
 # image_edit_benchmarks = [
@@ -447,4 +449,3 @@ image_edit_benchmarks = [
 #         "wedding",
 #     ),
 # ]
-

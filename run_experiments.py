@@ -70,9 +70,9 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
     # Our technique, baselines, and ablations
     test_settings = [
         # # LearnSy (baseline)
-        ("standard", LearnSy),
+        # ("standard", LearnSy),
         # # SampleSy (baseline)
-        ("standard", SampleSy),
+        # ("standard", SampleSy),
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
@@ -80,7 +80,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
         # # QS-noUB (ablation)
         # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
-        ("CCE", SelectRandom),
+        # ("CCE", SelectRandom),
     ] 
 
     avg_pred_set_sizes = []
@@ -90,14 +90,14 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
-        for i, benchmark in enumerate(active_learning.benchmarks):
-            random.seed(SEED + seed_inc + i)
+        for i, benchmark in enumerate(active_learning.benchmarks[:2]):
+            random.seed(SEED + i)
 
             print(f"Benchmark: {benchmark.gt_prog}")
             print(f"Domain: {question_selection.__name__}")
 
             # Generate the input space, question space, and initial examples specific to the domain
-            active_learning.set_question_space(benchmark, i, copy.deepcopy(input_space), delta, saved_examples, delta_index)
+            avg_answer_space_per_question, avg_pred_set_size = active_learning.set_question_space(benchmark, i, copy.deepcopy(input_space), delta, saved_examples, delta_index)
             
             initial_examples = active_learning.examples
             avg_pred_set_size, avg_total_pred_set_size = active_learning.get_pred_set_sizes(active_learning.input_space)
@@ -105,7 +105,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
             avg_total_pred_set_sizes.append(avg_total_pred_set_size)
 
             print("Performing initial synthesis...")
-            random.seed(constants.SEED + i)
+            random.seed(SEED + i)
             initial_synthesis_time = active_learning.set_program_space(benchmark, i, saved_program_spaces)
 
             print("Initial synthesis complete.")
@@ -341,43 +341,6 @@ def get_combined_table():
             writer.writerow(row)
 
 
-    # Create the bar plot presented in Figure 22 in the paper.
-    # if constants.TIME_EVALS:
-    #     for domain in domains:
-    #         data_dict = csv_to_dict(f"./output/{domain.__name__}_eval_results.csv")
-
-    #         domain_to_buckets = {
-    #             "MNISTActiveLearning" : [((1, 10), "(1, 10]"), ((11, 50), "(10, 50]"), ((51, 300), "(51, 300]")],
-    #             "ImageEditingActiveLearning" : [((1, 20), "(1, 20]"), ((21, 200), "(20, 200]"), ((201, 600), "(200, 600]")]
-    #         }
-
-    #         buckets = domain_to_buckets[domain.__name__]
-    #         plot_data = []
-    #         for semantics, question_selector, eval_times, num_evals in zip(data_dict["Semantics"], data_dict["Question Selector"], data_dict["Eval Times"], data_dict["Num Evals"]):
-
-    #             if question_selector != "SmartLabel":
-    #                 continue
-
-    #             eval_times = ast.literal_eval(eval_times)
-    #             num_evals = ast.literal_eval(num_evals)
-    #             for bucket, bucket_name in buckets:
-    #                 plot_data.append([semantics, bucket_name, sum([val * 1000 for key, val in eval_times.items() if key >= bucket[0] and key <= bucket[1]])/sum([val for key, val in num_evals.items() if key >= bucket[0] and key <= bucket[1]])])
-
-    #         # the sample dataframe from the OP
-    #         df = pd.DataFrame(plot_data, columns=['group', 'column', 'val'])
-
-    #         plt.figure(figsize=(5, 3))
-    #         plt.xlabel("Prediction Set Size")
-    #         plt.ylabel("Average Evaluation Time (ms)")
-    #         plt.title(domain.__name__)
-    #         plt.tight_layout()
-
-    #         # plot with seaborn barplot
-    #         sns.barplot(data=df, x='column', y='val', hue='group', edgecolor="black", palette='BuPu')
-
-    #         plt.legend(loc='upper left', fontsize=12)
-    #         plt.savefig(f"./output/{domain.__name__}_CCE_ablation.pdf")
-
 
 def json_to_img(json_dict):
     return Image(json_dict["preds"], json_dict["gt"])
@@ -404,10 +367,10 @@ def get_img_lists(save=False, load=False):
 
     img_lists = []
 
-    while len(img_lists) < constants.NUM_INPUTS:
+    while len(img_lists) < NUM_INPUTS:
         img_list = []
         # Add one more for img_int
-        for _ in range(constants.LIST_LENGTH + 1):
+        for _ in range(LIST_LENGTH + 1):
             img_list.append(get_int(imgs))
 
         img_lists.append(img_list)
@@ -427,7 +390,7 @@ def get_questions_from_img_lists(img_lists, interp, delta):
 
     for inp_id, img_list in enumerate(img_lists):
 
-        input_imgs = img_list[:constants.LIST_LENGTH]
+        input_imgs = img_list[:LIST_LENGTH]
         img_int = img_list[-1]
         
         inp = {
@@ -556,10 +519,12 @@ if __name__ == "__main__":
         .004,
         .00375,
     ]
-    # for delta in mnist_deltas:
-        # interp = MNISTInterpreter()
-        # input_questions = get_questions_from_img_lists(img_lists, interp, delta)
-        # run_experiments(MNISTActiveLearning, input_questions, delta, None)
+    saved_examples = {}
+    saved_program_spaces = {}
+    for i, delta in enumerate(mnist_deltas):
+        interp = MNISTInterpreter()
+        input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+        run_experiments(MNISTActiveLearning, input_questions, delta, saved_examples, i, saved_program_spaces)
     make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas, "VisArith")
 
     image_edit_deltas = [
@@ -572,6 +537,12 @@ if __name__ == "__main__":
     ]
     saved_examples = {}
     saved_program_spaces = {}
-    # for i, delta in enumerate(image_edit_deltas):
-        # run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
-    make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas, "ImageEdit")    
+    for i, delta in enumerate(image_edit_deltas):
+        run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
+    make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas, "ImageEdit")  
+
+    saved_examples = {}
+    saved_program_spaces = {}
+    for i, delta in enumerate(image_edit_deltas):
+        run_experiments(ImageSearchActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
+    make_scalability_experiment_plot(ImageSearchActiveLearning, image_edit_deltas, "ImageSearch")    
