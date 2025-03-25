@@ -42,7 +42,7 @@ import statistics
 # Constants
 from constants import *
 
-def run_experiments(domain, input_space, delta):
+def run_experiments(domain, input_space, delta, saved_examples, delta_index):
 
     active_learning_data = [(
              "GT Program",
@@ -63,6 +63,7 @@ def run_experiments(domain, input_space, delta):
              "Avg. Prediction Set Size",
              "# Rounds",  
              "Time Per Round",
+             "Initial Examples",
             )]
 
 
@@ -96,12 +97,15 @@ def run_experiments(domain, input_space, delta):
             print(f"Domain: {question_selection.__name__}")
 
             # Generate the input space, question space, and initial examples specific to the domain
-            active_learning.set_question_space(benchmark, i, copy.deepcopy(input_space), delta)
+            active_learning.set_question_space(benchmark, i, copy.deepcopy(input_space), delta, saved_examples, delta_index)
+            
+            initial_examples = active_learning.examples
             avg_pred_set_size, avg_total_pred_set_size = active_learning.get_pred_set_sizes(active_learning.input_space)
             avg_pred_set_sizes.append(avg_pred_set_size)
             avg_total_pred_set_sizes.append(avg_total_pred_set_size)
 
             print("Performing initial synthesis...")
+            random.seed(constants.SEED + i)
             initial_synthesis_time = active_learning.set_program_space(benchmark, i)
 
             print("Initial synthesis complete.")
@@ -113,7 +117,7 @@ def run_experiments(domain, input_space, delta):
 
             # Timeout after 600 seconds
             signal.signal(signal.SIGALRM, handler)
-            signal.alarm(1500)
+            signal.alarm(2400)
             output_progs, time_per_round, skipped_inputs = active_learning.run(benchmark, active_learning.program_space)
             signal.alarm(0)
             active_learning_time = time.perf_counter() - active_learning_start_time
@@ -142,7 +146,7 @@ def run_experiments(domain, input_space, delta):
             )
 
 
-        with open(f"./output/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv", "w") as f:
+        with open(f"./output_scalability/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv", "w") as f:
             writer = csv.writer(f)
             for row in active_learning_data:
                 writer.writerow(row)
@@ -190,99 +194,98 @@ def get_experiment_results(domains, seed_inc):
 
     # Create a table that has the results presented in tables 1, 2, 3 in the paper.
     for domain in domains:
-        for task_type in [""] if domain.__name__ == "ImageEditActiveLearning" else [""]:
-            setting_to_data_per_domain = {}
-            data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_{seed_inc}.csv", task_type)
+        setting_to_data_per_domain = {}
+        data_dict = csv_to_dict(f"./output_scalability/{domain.__name__}_active_learning_results.csv")
 
-            for (
-                semantics, 
-                question_selector, 
-                time_per_round, 
-                init_time, 
-                correct, 
-                num_initial_programs, 
-                num_final_programs, 
-                input_space_size,
-                question_space_size,
-                answer_space_size,
-                avg_pred_set_size,
-                ) in zip(
-                    data_dict["Semantics"], 
-                    data_dict["Question Selector"], 
-                    data_dict["Time Per Round"], 
-                    data_dict["Initial Synthesis Time"], 
-                    data_dict["Correct?"], 
-                    data_dict["Initial Program Space Size"], 
-                    data_dict["Final Program Space Size"],
-                    data_dict["Input Space Size"],
-                    data_dict["Question Space Size"],
-                    data_dict["Avg. Answer Space Size per Question"],
-                    data_dict["Avg. Prediction Set Size"],
-                    ):
-                key = f"{semantics}_{question_selector}"
-                if key not in setting_to_data_per_domain:
-                    setting_to_data_per_domain[key] = {
-                        "runtimes" : [],
-                        "num_rounds" : [],
-                        "num_init_progs" : [],
-                        "num_final_progs" : [],
-                        "input_space_sizes" : [],
-                        "question_space_sizes" : [],
-                        "avg_answer_space_sizes" : [],
-                        "avg_pred_set_sizes" : [],
-                        "correct" : 0 
-                    } 
-                if key not in setting_to_data_overall:
-                    setting_to_data_overall[key] = {
-                        "runtimes" : [],
-                        "num_rounds" : [],
-                        "num_init_progs" : [],
-                        "num_final_progs" : [],
-                        "input_space_sizes" : [],
-                        "question_space_sizes" : [],
-                        "avg_answer_space_sizes" : [],
-                        "avg_pred_set_sizes" : [],
-                        "correct" : 0          
-                    } 
-                time_per_round = ast.literal_eval(time_per_round)
-                setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
-                setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
-                setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
-                setting_to_data_per_domain[key]["input_space_sizes"].append(int(input_space_size))
-                setting_to_data_per_domain[key]["question_space_sizes"].append(int(question_space_size))
-                setting_to_data_per_domain[key]["avg_answer_space_sizes"].append(float(answer_space_size))
-                setting_to_data_per_domain[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
-                setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
+        for (
+            semantics, 
+            question_selector, 
+            time_per_round, 
+            init_time, 
+            correct, 
+            num_initial_programs, 
+            num_final_programs, 
+            input_space_size,
+            question_space_size,
+            answer_space_size,
+            avg_pred_set_size,
+            ) in zip(
+                data_dict["Semantics"], 
+                data_dict["Question Selector"], 
+                data_dict["Time Per Round"], 
+                data_dict["Initial Synthesis Time"], 
+                data_dict["Correct?"], 
+                data_dict["Initial Program Space Size"], 
+                data_dict["Final Program Space Size"],
+                data_dict["Input Space Size"],
+                data_dict["Question Space Size"],
+                data_dict["Avg. Answer Space Size per Question"],
+                data_dict["Avg. Prediction Set Size"],
+                ):
+            key = f"{semantics}_{question_selector}"
+            if key not in setting_to_data_per_domain:
+                setting_to_data_per_domain[key] = {
+                    "runtimes" : [],
+                    "num_rounds" : [],
+                    "num_init_progs" : [],
+                    "num_final_progs" : [],
+                    "input_space_sizes" : [],
+                    "question_space_sizes" : [],
+                    "avg_answer_space_sizes" : [],
+                    "avg_pred_set_sizes" : [],
+                    "correct" : 0 
+                } 
+            if key not in setting_to_data_overall:
+                setting_to_data_overall[key] = {
+                    "runtimes" : [],
+                    "num_rounds" : [],
+                    "num_init_progs" : [],
+                    "num_final_progs" : [],
+                    "input_space_sizes" : [],
+                    "question_space_sizes" : [],
+                    "avg_answer_space_sizes" : [],
+                    "avg_pred_set_sizes" : [],
+                    "correct" : 0          
+                } 
+            time_per_round = ast.literal_eval(time_per_round)
+            setting_to_data_per_domain[key]["num_rounds"].append(len(time_per_round))
+            setting_to_data_per_domain[key]["num_init_progs"].append(int(num_initial_programs))
+            setting_to_data_per_domain[key]["num_final_progs"].append(int(num_final_programs))
+            setting_to_data_per_domain[key]["input_space_sizes"].append(int(input_space_size))
+            setting_to_data_per_domain[key]["question_space_sizes"].append(int(question_space_size))
+            setting_to_data_per_domain[key]["avg_answer_space_sizes"].append(float(answer_space_size))
+            setting_to_data_per_domain[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
+            setting_to_data_per_domain[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0 
 
-                setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
-                setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
-                setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
-                setting_to_data_overall[key]["input_space_sizes"].append(int(input_space_size))
-                setting_to_data_overall[key]["question_space_sizes"].append(int(question_space_size))
-                setting_to_data_overall[key]["avg_answer_space_sizes"].append(float(answer_space_size))
-                setting_to_data_overall[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
-                setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
+            setting_to_data_overall[key]["num_rounds"].append(len(time_per_round))
+            setting_to_data_overall[key]["num_init_progs"].append(int(num_initial_programs))
+            setting_to_data_overall[key]["num_final_progs"].append(int(num_final_programs))
+            setting_to_data_overall[key]["input_space_sizes"].append(int(input_space_size))
+            setting_to_data_overall[key]["question_space_sizes"].append(int(question_space_size))
+            setting_to_data_overall[key]["avg_answer_space_sizes"].append(float(answer_space_size))
+            setting_to_data_overall[key]["avg_pred_set_sizes"].append(float(avg_pred_set_size))
+            setting_to_data_overall[key]["correct"] += 1 if correct in {"TRUE", "True"} else 0
 
-                for i, round_time in enumerate(time_per_round):
-                    if i == 0:
-                        round_time += float(init_time)
-                    setting_to_data_per_domain[key]["runtimes"].append(round_time)
-                    setting_to_data_overall[key]["runtimes"].append(round_time)
+            for i, round_time in enumerate(time_per_round):
+                if i == 0:
+                    round_time += float(init_time)
+                setting_to_data_per_domain[key]["runtimes"].append(round_time)
+                setting_to_data_overall[key]["runtimes"].append(round_time)
 
-            for key, val in setting_to_data_per_domain.items():
-                rows.append([
-                    f"{domain.__name__}{task_type}",
-                    key,
-                    np.mean(val["num_rounds"]),
-                    np.mean(val["num_init_progs"]),
-                    np.mean(val["num_final_progs"]),
-                    np.mean(val["input_space_sizes"]),
-                    np.mean(val["question_space_sizes"]),
-                    np.mean(val["avg_answer_space_sizes"]),
-                    np.mean(val["avg_pred_set_sizes"]),
-                    val["correct"],
-                    np.mean(val["runtimes"])
-                ])
+        for key, val in setting_to_data_per_domain.items():
+            rows.append([
+                f"{domain.__name__}",
+                key,
+                np.mean(val["num_rounds"]),
+                np.mean(val["num_init_progs"]),
+                np.mean(val["num_final_progs"]),
+                np.mean(val["input_space_sizes"]),
+                np.mean(val["question_space_sizes"]),
+                np.mean(val["avg_answer_space_sizes"]),
+                np.mean(val["avg_pred_set_sizes"]),
+                val["correct"],
+                np.mean(val["runtimes"])
+            ])
 
     for key, val in setting_to_data_overall.items():
         rows.append([
@@ -448,7 +451,7 @@ def make_scalability_experiment_plot(domain, deltas):
 
     for delta in deltas:
 
-        data_dict = csv_to_dict(f"./output/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv")
+        data_dict = csv_to_dict(f"./output_scalability/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv")
 
         semantics_to_rtimes_per_round = {
             "CCE_SmartLabel" : [],
@@ -550,7 +553,7 @@ def make_scalability_experiment_plot(domain, deltas):
 
     plt.tight_layout()
     # Display the plot
-    plt.savefig(f'./output/scalability_plot_{domain.__name__}.pdf', dpi=300)
+    plt.savefig(f'./output_scalability/scalability_plot_{domain.__name__}.pdf', dpi=300)
 
 
 
@@ -564,14 +567,16 @@ if __name__ == "__main__":
         .004,
         .00375,
     ]
-    for delta in mnist_deltas:
-        interp = MNISTInterpreter()
-        input_questions = get_questions_from_img_lists(img_lists, interp, delta)
-        run_experiments(MNISTActiveLearning, input_questions, delta)
-        get_experiment_results([MNISTActiveLearning])
-    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
+    # for delta in mnist_deltas:
+    #     interp = MNISTInterpreter()
+    #     input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+    #     run_experiments(MNISTActiveLearning, input_questions, delta)
+    #     get_experiment_results([MNISTActiveLearning])
+    # make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
     image_edit_deltas = [
+        .5,
+        .475,
         .45,
         .425,
         .4,
@@ -579,7 +584,8 @@ if __name__ == "__main__":
         .35,
         .325,
     ]
-    for delta in image_edit_deltas:
-        run_experiments(ImageEditActiveLearning, {}, delta)
+    saved_examples = {}
+    for i, delta in enumerate(image_edit_deltas):
+        run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i)
         # get_experiment_results([ImageEditActiveLearning])
     make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas)    

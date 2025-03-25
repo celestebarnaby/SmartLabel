@@ -45,7 +45,7 @@ class ImageEditActiveLearning(ActiveLearning):
         return sum(per_component_pred_set_sizes)/len(per_component_pred_set_sizes), sum(per_input_pred_set_sizes)/len(per_input_pred_set_sizes)
 
 
-    def set_question_space(self, benchmark, i, input_space, delta):
+    def set_question_space(self, benchmark, i, input_space, delta, saved_examples, delta_index):
         print("Loading images...")
 
         dataset_dir = f"./scalability_experiment/{benchmark.dataset_name}_{delta}.json"
@@ -58,10 +58,20 @@ class ImageEditActiveLearning(ActiveLearning):
             raise TypeError 
         # TODO: Maybe shouldn't have MAX_PRED_SET_SIZE?
         input_space = {img : abs_img for img, abs_img in all_images.items() if len(abs_img["conf_list"]) <= MAX_PRED_SET_SIZE}
-        examples = self.get_examples(benchmark.gt_prog, all_images)
-        for inp, _ in examples:
-            input_space[inp] = all_images[inp]
-        labelling_qs, avg_pred_set_sizes = self.get_labelling_qs(input_space)
+        if delta_index == 0:
+            examples = self.get_examples(benchmark.gt_prog, input_space)
+            saved_examples[i] = [inp_id for inp_id, _ in examples]
+        else:
+            example_ids = saved_examples[i]
+            examples = []
+            for example_id in example_ids:
+                gt_output = self.interp.eval_standard(benchmark.gt_prog, all_images[example_id]["gt"])
+                key = "conf" if self.semantics in {"CCE", "CCE-NoAbs"} else self.semantics
+                output = self.get_pred_output(gt_output, all_images[example_id]["gt"], all_images[example_id][key])
+                examples.append((example_id, output))
+                # if output is None or len(output) == 0:
+                #     raise TypeError
+        labelling_qs = self.get_labelling_qs(input_space)
         self.input_space = input_space 
         self.examples = examples 
         self.labelling_qs = labelling_qs

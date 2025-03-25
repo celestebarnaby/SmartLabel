@@ -229,6 +229,7 @@ image_edit_benchmarks = [
         "Faces of people not playing guitar",
         "festival",
     ),
+    ]
 
     # # RECEIPTS BENCHMARKS!
     # Benchmark(
