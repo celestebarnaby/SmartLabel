@@ -120,8 +120,8 @@ image_search_benchmarks = [
         Intersection(
             [IsObject("Face"), Complement(Map(IsObject("Car"), IsObject("Face"), GetContains()))]
         ),
-        "Pedestrians and cyclists",
-        "cars",
+        "People not driving cars",
+         "cars",
     ),
     Benchmark(
         Union([IsObject("Bicycle"), IsObject("Car")]),

@@ -21,7 +21,7 @@ image_edit_benchmarks = [
     ),
     Benchmark(
         Union([IsObject("Bride"), Map(IsObject("Bride"), IsObject("Face"), GetAbove())]),
-        "Face 8 and face 34 when it is behind face 8",
+        "The bride and people behind the bride",
         "wedding",
     ),
     Benchmark(
@@ -106,12 +106,12 @@ image_edit_benchmarks = [
     ),
     Benchmark(
         Map(Intersection([IsSmiling(), EyesOpen()]), IsObject("Car"), GetIsContained()),
-        "Cars with visible wheels",
+        "Cars being driven by people smiling and with eyes open",
         "cars",
     ),
     Benchmark(
         Map(IsObject("Car"), IsObject("Face"), GetContains()),
-        "All faces within car",
+        "People driving cars",
         "cars",
     ),
     Benchmark(
@@ -126,7 +126,7 @@ image_edit_benchmarks = [
     ),
     Benchmark(
         Map(IsObject("Car"), Union([IsObject("Person"), IsObject("Bicycle")]), GetContains()),
-        "All wheels on a car",
+        "People and bicycles in front of cars",
         "cars",
     ),
     Benchmark(
@@ -143,7 +143,7 @@ image_edit_benchmarks = [
     ),
     Benchmark(
         Map(Map(IsObject("Helmet"), IsObject("Person"), GetBelow()), IsObject("Bicycle"), GetBelow()),
-        "Bicycles that are being ridden",
+        "Bicycles that are being ridden by a person wearing a helmet",
         "cars",
     ),
     Benchmark(
@@ -173,7 +173,7 @@ image_edit_benchmarks = [
     ),
     Benchmark(
         Map(IsObject("Bicycle"), Union([IsSmiling(), EyesOpen()]), GetAbove()),
-        "All people with mouth open on a bicycle",
+        "All people smiling or with eyes open on a bicycle",
         "cars",
     ),
     Benchmark(
