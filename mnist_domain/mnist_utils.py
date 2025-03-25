@@ -2,6 +2,7 @@ import itertools
 import numpy as np
 import random
 from constants import *
+import constants
 
 
 class Image:
@@ -14,6 +15,9 @@ class Image:
 
     def __str__(self):
         return "({}, {})".format(self.get_pred(), self.gt)
+    
+    def to_json(self):
+        return {'preds' : self.preds, 'gt': self.gt}
 
 def load_mnist():
     imgs = []
@@ -25,7 +29,7 @@ def load_mnist():
             imgs.append(Image(preds, gt))
     return imgs
 
-def get_w_alg():
+def get_w_alg(delta):
     '''
     We use a dataset of labeled MNIST digits to compute a thresholding score. This score ensures that 
     1) The ground truth value will be contained in the prediction set with 1 - \delta probability.
@@ -37,25 +41,24 @@ def get_w_alg():
         score = img.preds[label]
         scores.append(-1 * score) # a lower score indicates more confidence about the prediction
 
-    return get_w_conformal(scores)
+    return get_w_conformal(scores, delta)
 
 
-def get_w_conformal(scores):
+def get_w_conformal(scores, delta):
      '''
      A helper function for computing the thresholding score. Given a list of non-conformity scores from the calibration dataset,
      return the appropriate thresholding score corresponding to (1 - delta) coverage. 
      '''
      calibration_size = len(scores)
-     desired_quantile = np.ceil((1 - MNIST_DELTA) * (calibration_size + 1)) / calibration_size
+     desired_quantile = np.ceil((1 - delta) * (calibration_size + 1)) / calibration_size
      chosen_quantile = np.minimum(1.0, desired_quantile)
      w = np.quantile(scores, chosen_quantile)
      return w
 
 MNIST_IMGS = load_mnist()
-PRED_SET_THRESHOLD = get_w_alg()
 
-def get_conf(cur_int):
-    ls = itertools.product(*[get_pred_set(digit_img, PRED_SET_THRESHOLD) for digit_img in cur_int])
+def get_conf(cur_int, threshold):
+    ls = itertools.product(*[get_pred_set(digit_img, threshold) for digit_img in cur_int])
     return [int(sum([item * 10**i for (i, item) in enumerate(l)])) for l in ls]
 
 def get_gt(img_list):

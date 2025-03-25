@@ -27,7 +27,7 @@ class MNISTActiveLearning(ActiveLearning):
     def set_interpreter(self):
         self.interp = MNISTInterpreter()
 
-    def set_question_space(self, benchmark, i):
+    def set_question_space(self, benchmark, i, input_space):
 
         # input_space = {}
         gt_prog = self.interp.parse(benchmark.gt_prog)
@@ -44,6 +44,7 @@ class MNISTActiveLearning(ActiveLearning):
                 labelling_qs.append(LabelQuestion(inp_id, "img", None))
                 pred_set_sizes.append(len(inp["conf"]["img"]))
  
+        random.seed(123 + i)
         self.examples = [(inp_id, self.interp.eval_standard(gt_prog, inp["gt"])) for inp_id, inp in random.sample(sorted(input_space.items()), NUM_INITIAL_EXAMPLES)] 
         self.input_space = input_space
         self.labelling_qs = labelling_qs
