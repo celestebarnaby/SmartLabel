@@ -76,7 +76,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
         # # SmartLabel (our technique)
         ("CCE", SmartLabel),
         # # CCE-NoAbs (ablation)
-        # ("CCE-NoAbs", SmartLabelNoUB),
+        ("CCE-NoAbs", SmartLabelNoUB),
         # # QS-noUB (ablation)
         # ("CCE", SmartLabelNoUB),
         # Select random question (baseline)
