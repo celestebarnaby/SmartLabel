@@ -90,7 +90,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
         pr = cProfile.Profile()
         pr.enable()
         active_learning = domain(semantics, question_selection)
-        for i, benchmark in enumerate(active_learning.benchmarks[:2]):
+        for i, benchmark in enumerate(active_learning.benchmarks):
             random.seed(SEED + i)
 
             print(f"Benchmark: {benchmark.gt_prog}")
