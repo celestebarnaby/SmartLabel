@@ -159,7 +159,7 @@ def run_experiments(domain, input_space, delta, saved_examples, delta_index, sav
             f.write(s.getvalue())
 
 
-def csv_to_dict(filename):
+def csv_to_dict(filename, task_type):
     data_dict = {}
     with open(filename, mode='r') as file:
         reader = csv.reader(file)
@@ -443,7 +443,7 @@ def get_questions_from_img_lists(img_lists, interp, delta):
     return input_space
 
 
-def make_scalability_experiment_plot(domain, deltas):
+def make_scalability_experiment_plot(domain, deltas, task_type=""):
 
     pred_set_size_to_avg_runtime = {}
     first_threshold = True
@@ -452,7 +452,7 @@ def make_scalability_experiment_plot(domain, deltas):
     for delta in deltas:
 
         # Load benchmark results for each delta
-        data_dict = csv_to_dict(f"./output_scalability/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv")
+        data_dict = csv_to_dict(f"./output_scalability/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv", task_type)
 
         semantics_to_rtimes_per_round = {
             "CCE_SmartLabel" : [],
@@ -538,11 +538,18 @@ def make_scalability_experiment_plot(domain, deltas):
     # Add labels and title
     plt.xlabel('Avg. Prediction Set Size')
     plt.ylabel('Avg. User Interaction Time (s)')
+
+    task_type_to_title = {
+        '' : 'PixelList',
+        'Search' : 'Image Search',
+        'Edit' : 'ImageEdit'
+    }
+
     plt.title('PixelList' if domain == MNISTActiveLearning else "ImageEdit")
 
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f'./output_scalability/scalability_plot_{domain.__name__}.pdf', dpi=300)
+    plt.savefig(f'./output_scalability/scalability_plot_{task_type_to_title[task_type]}.pdf', dpi=300)
 
 
 if __name__ == "__main__":
@@ -555,11 +562,11 @@ if __name__ == "__main__":
         .004,
         .00375,
     ]
-    for delta in mnist_deltas:
-        interp = MNISTInterpreter()
-        input_questions = get_questions_from_img_lists(img_lists, interp, delta)
-        run_experiments(MNISTActiveLearning, input_questions, delta)
-    make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
+    # for delta in mnist_deltas:
+        # interp = MNISTInterpreter()
+        # input_questions = get_questions_from_img_lists(img_lists, interp, delta)
+        # run_experiments(MNISTActiveLearning, input_questions, delta, None)
+    # make_scalability_experiment_plot(MNISTActiveLearning, mnist_deltas)
 
     image_edit_deltas = [
         .45,
@@ -571,6 +578,7 @@ if __name__ == "__main__":
     ]
     saved_examples = {}
     saved_program_spaces = {}
-    for i, delta in enumerate(image_edit_deltas):
-        run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
+    # for i, delta in enumerate(image_edit_deltas):
+        # run_experiments(ImageEditActiveLearning, {}, delta, saved_examples, i, saved_program_spaces)
+    # for task_type in ["Edit", "Search"]:
     make_scalability_experiment_plot(ImageEditActiveLearning, image_edit_deltas)    
