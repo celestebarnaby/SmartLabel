@@ -320,8 +320,12 @@ def get_combined_table():
 
 if __name__ == "__main__":
     for i in range(NUM_SEEDS):
-        domains = [MNISTActiveLearning, ImageEditActiveLearning, ImageSearchActiveLearning]
-        # for domain in domains:
-            # run_experiments(domain, i)
-        # get_experiment_results(domains, i)
+        domains = [
+            MNISTActiveLearning, 
+            ImageEditActiveLearning, 
+            ImageSearchActiveLearning,
+        ]
+        for domain in domains:
+            run_experiments(domain, i)
+        get_experiment_results(domains, i)
     get_combined_table()

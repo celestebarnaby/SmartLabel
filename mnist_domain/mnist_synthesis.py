@@ -49,12 +49,6 @@ class MNISTSynthesizer(Synthesizer):
             symb, 
             examples, 
             check):
-        
-        # # Try to fetch cached result (ignores examples for now)
-        # cached_result = self.cache.get(depth, symb)
-        # if cached_result:
-        #     return cached_result
-
         if depth < 0:
             return [], [], 0
         exprs = []
@@ -76,15 +70,10 @@ class MNISTSynthesizer(Synthesizer):
                     expr = Expr(rule[0], children)
                     exprs.append(expr)
                     if symb == "int":
-                        # print('asdfasdf')
-                        # print(examples)
                         if check(expr, examples):
                             exprs_matching_examples.append(expr)
 
         # TODO: deal with this?
-        # result = (exprs, exprs_matching_examples)
-        # # Cache the result (without examples)
-        # self.cache.set(depth, symb, result)
         return exprs, exprs_matching_examples
 
 
