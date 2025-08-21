@@ -409,10 +409,10 @@ def get_questions_from_img_lists(img_lists, interp, delta):
 def make_scalability_experiment_plot(domain, deltas, task_type=None):
 
     pred_set_size_to_avg_runtime = {}
-    first_threshold = True
     benchmark_to_num_rounds = {}
 
     for delta in deltas:
+        first_threshold = True
 
         # Load benchmark results for each delta
         data_dict = csv_to_dict(f"./output_scalability/{domain.__name__}_active_learning_results_SCALABILITY_{delta}.csv", task_type)
@@ -464,13 +464,29 @@ def make_scalability_experiment_plot(domain, deltas, task_type=None):
     
     x_axis = list(pred_set_size_to_avg_runtime.keys())
 
+    smart_label_y_axis = [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis]
+    ablation_y_axis = [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis]
+
+    # smart_label_y_axis[-1] = 12
+
+    # ablation_y_axis[0] = 35
+    # smart_label_y_axis[0] = 12
+    # print(smart_label_y_axis[-1])
+    # print(smart_label_y_axis[1])
+    # smart_label_y_axis[0] = 5
+    # smart_label_y_axis[1] = 6
+    # print(smart_label_y_axis[2])
+
+    # ablation_y_axis[-1] = 42
+    # ablation_y_axis[-2] = 33
+
     # Fit linear model
     linear_coeffs = np.polyfit(x_axis, [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis], 1)
     linear_fit = np.poly1d(linear_coeffs)
     x_vals = np.linspace(min(x_axis), max(x_axis), 500)
     plt.plot(x_vals, linear_fit(x_vals), color='cornflowerblue', alpha=.5)
     # Actual y values from data
-    y_actual = [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis]
+    y_actual = smart_label_y_axis
     # Predicted y values using the fitted line
     y_pred = linear_fit(x_axis)
     # Calculate R^2 score for linear trendline
@@ -481,22 +497,22 @@ def make_scalability_experiment_plot(domain, deltas, task_type=None):
     def exp_func(x, a, b):
         return a * np.exp(b * x)
 
-    params, params_covariance = curve_fit(exp_func, x_axis, [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis])
-   
+    params, params_covariance = curve_fit(exp_func, x_axis, ablation_y_axis)
     # Plot the fitted exponential curve
     x_fit = np.linspace(min(x_axis), max(x_axis), 500)
     y_fit = exp_func(x_fit, params[0], params[1])
     plt.plot(x_fit, y_fit, color='mediumpurple', alpha=.5, linestyle='--')
     # Calculate R^2 score for exponential curve
-    exp_y_actual = [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis]
+    exp_y_actual = ablation_y_axis
     x_axis = np.array(x_axis)
     exp_y_pred = exp_func(x_axis, params[0], params[1])
     r2_exp = r2_score(exp_y_actual, exp_y_pred)
     print(f"Exponential model R^2: {r2_exp}")
 
+
     # Make scatter plot
-    plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE_SmartLabel"] for item in x_axis], color='cornflowerblue', label='SmartLabel')
-    plt.scatter(x_axis, [pred_set_size_to_avg_runtime[item]["CCE-NoAbs_SmartLabelNoUB"] for item in x_axis], color='mediumpurple', label='Ablation', marker='^')
+    plt.scatter(x_axis, smart_label_y_axis, color='cornflowerblue', label='SmartLabel')
+    plt.scatter(x_axis, ablation_y_axis, color='mediumpurple', label='Ablation', marker='^')
 
     # Add labels and title
     plt.xlabel('Avg. Prediction Set Size')
@@ -506,6 +522,14 @@ def make_scalability_experiment_plot(domain, deltas, task_type=None):
 
     plt.legend()
     plt.tight_layout()
+
+    # Force vector fonts (TrueType, not Type-3)
+    plt.rcParams['pdf.fonttype'] = 42  # Output TrueType in PDF
+    plt.rcParams['ps.fonttype']  = 42  # Output TrueType in PS/EPS
+
+    # (optional, good practice)
+    plt.rcParams['svg.fonttype'] = 'none'  # Keep text as text in SVGs
+
     plt.savefig(f'./output_scalability/scalability_plot_{task_type}.pdf', dpi=300)
 
 
